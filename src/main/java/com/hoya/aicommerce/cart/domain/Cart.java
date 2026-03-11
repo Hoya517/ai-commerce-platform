@@ -61,6 +61,20 @@ public class Cart {
         }
     }
 
+    public void updateItemQuantity(Long productId, int newQuantity, int availableStock) {
+        CartItem item = findItem(productId);
+        if (item == null) {
+            throw new CartException("Item not found in cart");
+        }
+        if (newQuantity <= 0) {
+            throw new CartException("Quantity must be greater than 0");
+        }
+        if (newQuantity > availableStock) {
+            throw new CartException("Exceeds available stock");
+        }
+        item.updateQuantity(newQuantity);
+    }
+
     public void removeItem(Long productId) {
         items.removeIf(item -> item.getProductId().equals(productId));
     }

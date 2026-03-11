@@ -1,0 +1,56 @@
+package com.hoya.aicommerce.payment.application;
+
+import com.hoya.aicommerce.order.domain.Order;
+import com.hoya.aicommerce.order.domain.OrderRepository;
+import com.hoya.aicommerce.order.exception.OrderException;
+import com.hoya.aicommerce.payment.application.dto.ConfirmPaymentCommand;
+import com.hoya.aicommerce.payment.application.dto.FailPaymentCommand;
+import com.hoya.aicommerce.payment.application.dto.PaymentResult;
+import com.hoya.aicommerce.payment.application.dto.RequestPaymentCommand;
+import com.hoya.aicommerce.payment.domain.Payment;
+import com.hoya.aicommerce.payment.domain.PaymentRepository;
+import com.hoya.aicommerce.payment.exception.PaymentException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class PaymentService {
+
+    private final PaymentRepository paymentRepository;
+    private final OrderRepository orderRepository;
+
+    @Transactional
+    public PaymentResult requestPayment(RequestPaymentCommand command) {
+        Order order = orderRepository.findById(command.orderId())
+                .orElseThrow(() -> new OrderException("Order not found"));
+
+        order.startPayment();
+
+        Payment payment = Payment.create(order.getId(), order.getTotalAmount(), command.method());
+        return PaymentResult.from(paymentRepository.save(payment));
+    }
+
+    @Transactional
+    public PaymentResult confirmPayment(ConfirmPaymentCommand command) {
+        Payment payment = paymentRepository.findById(command.paymentId())
+                .orElseThrow(() -> new PaymentException("Payment not found"));
+
+        payment.request(command.paymentKey());
+        payment.approve();
+
+        Order order = orderRepository.findById(payment.getOrderId())
+                .orElseThrow(() -> new OrderException("Order not found"));
+        order.markPaid();
+
+        return PaymentResult.from(payment);
+    }
+
+    @Transactional
+    public void failPayment(FailPaymentCommand command) {
+        Payment payment = paymentRepository.findById(command.paymentId())
+                .orElseThrow(() -> new PaymentException("Payment not found"));
+        payment.fail(command.failureCode(), command.failureMessage());
+    }
+}

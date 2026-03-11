@@ -48,4 +48,8 @@ public class CartItem {
     void increaseQuantity(int amount) {
         this.quantity += amount;
     }
+
+    void updateQuantity(int newQuantity) {
+        this.quantity = newQuantity;
+    }
 }

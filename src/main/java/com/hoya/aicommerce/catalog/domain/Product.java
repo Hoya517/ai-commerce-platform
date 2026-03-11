@@ -66,4 +66,8 @@ public class Product {
     public boolean isOnSale() {
         return this.status == ProductStatus.ON_SALE;
     }
+
+    public void changeStatus(ProductStatus newStatus) {
+        this.status = newStatus;
+    }
 }
