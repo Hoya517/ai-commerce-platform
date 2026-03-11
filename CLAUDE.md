@@ -37,3 +37,7 @@ OpenAPI docs are auto-generated — document controllers with SpringDoc annotati
 ## Configuration
 
 `application.properties` currently has only `spring.application.name`. Database and other environment-specific settings go here (or in `application-{profile}.properties`).
+
+## 작업 방식
+
+작업 중 확인이나 승인을 구하지 않고 독립적으로 판단해서 끝까지 진행한다. 중간에 질문하거나 멈추지 않는다.
