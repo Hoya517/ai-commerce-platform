@@ -1,11 +1,11 @@
-# Semi Project Gap Checklist
+# Gap Checklist
 
 > 기준일: 2026-03-13
-> 세미 프로젝트 목표 대비 현재 구현 상태를 점검하는 체크리스트.
+> 목표 대비 현재 구현 상태를 점검하는 체크리스트.
 
 ---
 
-## A. 세미 프로젝트 필수 기능
+## A. 필수 기능
 
 ### Member / Auth
 
@@ -67,7 +67,7 @@
 
 ---
 
-## B. 세미 프로젝트 품질 보강
+## B. 품질 보강
 
 - [ ] 실 DB (MySQL/PostgreSQL)
 - [ ] Flyway/Liquibase
