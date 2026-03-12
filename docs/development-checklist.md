@@ -9,8 +9,8 @@
 
 ### Member / Auth
 
-- [ ] Member Entity
-- [ ] 회원가입 API
+- [x] Member Entity
+- [x] 회원가입 API
 - [ ] 로그인 API
 - [ ] JWT 인증
 - [ ] 인증 필터 적용

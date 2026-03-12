@@ -4,7 +4,7 @@
 
 ## 개요
 
-Spring Boot 4.0.3 기반의 MSA 학습용 커머스 백엔드. 현재는 단일 모놀리식 애플리케이션으로, 4개의 Bounded Context를 레이어드 아키텍처로 구현한 상태.
+Spring Boot 4.0.3 기반의 커머스 백엔드. 현재는 단일 모놀리식 애플리케이션으로, 5개의 Bounded Context를 레이어드 아키텍처로 구현한 상태.
 
 ---
 
@@ -16,6 +16,7 @@ Spring Boot 4.0.3 기반의 MSA 학습용 커머스 백엔드. 현재는 단일 
 | **Cart** | `Cart`, `CartItem` | 회원별 장바구니 관리 (추가·수량변경·삭제) |
 | **Order** | `Order`, `OrderItem` | 주문 생성·조회·취소, 결제 완료 상태 반영 |
 | **Payment** | `Payment` | 결제 요청·승인·실패 처리 |
+| **Member** | `Member` | 회원 가입·조회 (인증은 ISSUE-04) |
 | **Common** | `Money`, `Quantity` | 공통 값 객체 (금액, 수량) |
 
 ---
@@ -54,6 +55,13 @@ Spring Boot 4.0.3 기반의 MSA 학습용 커머스 백엔드. 현재는 단일 
 | `POST` | `/payments` | 결제 요청 |
 | `POST` | `/payments/confirm` | 결제 승인 (→ 주문 PAID 상태로 변경) |
 | `POST` | `/payments/fail` | 결제 실패 처리 |
+
+### Member — `/members`
+
+| Method | Path | 설명 |
+|---|---|---|
+| `POST` | `/members` | 회원 가입 |
+| `GET` | `/members/{memberId}` | 회원 단건 조회 |
 
 ---
 
@@ -96,15 +104,14 @@ Presentation  →  Application  →  Domain  →  Infrastructure(Repository)
 
 ### 구현된 기능
 
-- 4개 Bounded Context 전체 Domain · Application · Presentation 레이어 구현
+- 5개 Bounded Context 전체 Domain · Application · Presentation 레이어 구현
 - 도메인 단위 테스트, 서비스 단위 테스트, 컨트롤러 슬라이스 테스트 모두 통과
 - 공통 응답 포맷(`ApiResponse<T>`) 및 전역 예외 처리
 - Swagger UI를 통한 API 문서 자동 생성
 
 ### 아직 구현되지 않은 기능
 
-- Member 도메인 (회원 가입·로그인)
-- JWT 인증 (현재 `memberId`를 쿼리 파라미터로 직접 전달)
+- 로그인 API / JWT 인증 (현재 `memberId`를 쿼리 파라미터로 직접 전달)
 - Seller 도메인
 - Wallet (예치금)
 - Settlement (정산)
@@ -115,7 +122,7 @@ Presentation  →  Application  →  Domain  →  Infrastructure(Repository)
 
 ### 다음 단계 예정 작업
 
-Member / Auth 구현 → Wallet / Seller → Settlement → 이벤트 기반 아키텍처 → CI/CD
+로그인 API / JWT 인증 → Wallet / Seller → Settlement → 이벤트 기반 아키텍처 → CI/CD
 
 ---
 
@@ -123,7 +130,7 @@ Member / Auth 구현 → Wallet / Seller → Settlement → 이벤트 기반 아
 
 | 항목 | 설명 |
 |---|---|
-| Member / Auth | 회원 도메인 + JWT 인증 적용 |
+| Member / Auth | 로그인 API + JWT 인증 적용 (Member 도메인은 구현 완료) |
 | Wallet (예치금) | 회원별 예치금 충전·사용 |
 | Seller | 판매자 도메인 및 상품 등록 권한 |
 | Settlement | 판매 정산 처리 |

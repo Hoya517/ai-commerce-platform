@@ -8,8 +8,8 @@
 
 **Goal:** Introduce a proper user system and remove direct memberId parameters from APIs.
 
-- [ ] Member Entity
-- [ ] 회원가입 API
+- [x] Member Entity
+- [x] 회원가입 API
 - [ ] 로그인 API
 - [ ] JWT Authentication
 - [ ] Security Filter
