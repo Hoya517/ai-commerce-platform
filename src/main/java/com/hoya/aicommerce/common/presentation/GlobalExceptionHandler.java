@@ -2,6 +2,7 @@ package com.hoya.aicommerce.common.presentation;
 
 import com.hoya.aicommerce.cart.exception.CartException;
 import com.hoya.aicommerce.catalog.exception.ProductException;
+import com.hoya.aicommerce.member.exception.MemberException;
 import com.hoya.aicommerce.order.exception.OrderException;
 import com.hoya.aicommerce.payment.exception.PaymentException;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +15,7 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler({ProductException.class, CartException.class, OrderException.class, PaymentException.class})
+    @ExceptionHandler({ProductException.class, CartException.class, OrderException.class, PaymentException.class, MemberException.class})
     public ResponseEntity<ApiResponse<Void>> handleDomainException(RuntimeException e) {
         return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
     }
