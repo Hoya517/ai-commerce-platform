@@ -48,11 +48,12 @@ public class SellerService {
         return SellerResult.from(seller);
     }
 
-    public void verifyApprovedSeller(Long memberId) {
+    public Long verifyApprovedSeller(Long memberId) {
         Seller seller = sellerRepository.findByMemberId(memberId)
                 .orElseThrow(() -> new SellerException("판매자 등록이 필요합니다"));
         if (!seller.isApproved()) {
             throw new SellerException("승인된 판매자만 상품을 등록할 수 있습니다");
         }
+        return seller.getId();
     }
 }

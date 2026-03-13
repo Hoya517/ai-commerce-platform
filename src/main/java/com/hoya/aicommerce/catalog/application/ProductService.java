@@ -23,7 +23,8 @@ public class ProductService {
                 command.name(),
                 command.description(),
                 Money.of(command.price()),
-                command.stockQuantity()
+                command.stockQuantity(),
+                command.sellerId()
         );
         return ProductResult.from(productRepository.save(product));
     }

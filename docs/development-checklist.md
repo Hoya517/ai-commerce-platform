@@ -47,6 +47,7 @@
 - [x] 판매자 등록
 - [x] 판매자 승인/정지 상태 관리
 - [x] 상품 등록 시 승인된 판매자 검증
+- [x] Product에 sellerId 연결 (응답에 sellerId 포함)
 
 ### Settlement
 

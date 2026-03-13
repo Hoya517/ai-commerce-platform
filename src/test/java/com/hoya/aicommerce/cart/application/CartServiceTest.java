@@ -58,7 +58,7 @@ class CartServiceTest {
     @Test
     void 장바구니에_상품이_추가된다() {
         Cart cart = Cart.create(1L);
-        Product product = Product.create("상품A", "설명", Money.of(1000L), 10);
+        Product product = Product.create("상품A", "설명", Money.of(1000L), 10, 1L);
 
         given(cartRepository.findByMemberId(1L)).willReturn(Optional.of(cart));
         given(productRepository.findById(10L)).willReturn(Optional.of(product));
@@ -72,7 +72,7 @@ class CartServiceTest {
     @Test
     void 장바구니가_없으면_새로_생성하여_상품을_추가한다() {
         Cart newCart = Cart.create(1L);
-        Product product = Product.create("상품A", "설명", Money.of(1000L), 10);
+        Product product = Product.create("상품A", "설명", Money.of(1000L), 10, 1L);
 
         given(cartRepository.findByMemberId(1L)).willReturn(Optional.empty());
         given(cartRepository.save(any())).willReturn(newCart);
@@ -88,7 +88,7 @@ class CartServiceTest {
     @Test
     void 판매중이_아닌_상품은_장바구니에_추가할_수_없다() {
         Cart cart = Cart.create(1L);
-        Product product = Product.create("상품A", "설명", Money.of(1000L), 10);
+        Product product = Product.create("상품A", "설명", Money.of(1000L), 10, 1L);
         product.changeStatus(com.hoya.aicommerce.catalog.domain.ProductStatus.HIDDEN);
 
         given(cartRepository.findByMemberId(1L)).willReturn(Optional.of(cart));
@@ -101,7 +101,7 @@ class CartServiceTest {
     @Test
     void 장바구니_상품_수량이_변경된다() {
         Cart cart = Cart.create(1L);
-        Product product = Product.create("상품A", "설명", Money.of(1000L), 10);
+        Product product = Product.create("상품A", "설명", Money.of(1000L), 10, 1L);
         cart.addItem(10L, "상품A", Money.of(1000L), 2, 10, true);
 
         given(cartRepository.findByMemberId(1L)).willReturn(Optional.of(cart));

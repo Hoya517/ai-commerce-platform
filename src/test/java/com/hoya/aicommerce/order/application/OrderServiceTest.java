@@ -41,7 +41,7 @@ class OrderServiceTest {
 
     @Test
     void 주문이_생성된다() {
-        Product product = Product.create("상품A", "설명", Money.of(1000L), 10);
+        Product product = Product.create("상품A", "설명", Money.of(1000L), 10, 1L);
         Order order = Order.create(1L);
         given(productRepository.findById(10L)).willReturn(Optional.of(product));
         given(orderRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
@@ -58,7 +58,7 @@ class OrderServiceTest {
 
     @Test
     void 판매중이_아닌_상품은_주문할_수_없다() {
-        Product product = Product.create("상품A", "설명", Money.of(1000L), 10);
+        Product product = Product.create("상품A", "설명", Money.of(1000L), 10, 1L);
         product.changeStatus(ProductStatus.HIDDEN);
         given(productRepository.findById(10L)).willReturn(Optional.of(product));
 
@@ -80,7 +80,7 @@ class OrderServiceTest {
 
     @Test
     void 재고_초과_주문시_예외가_발생한다() {
-        Product product = Product.create("상품A", "설명", Money.of(1000L), 3);
+        Product product = Product.create("상품A", "설명", Money.of(1000L), 3, 1L);
         given(productRepository.findById(10L)).willReturn(Optional.of(product));
 
         CreateOrderCommand command = new CreateOrderCommand(1L, List.of(new OrderItemCommand(10L, 5)));

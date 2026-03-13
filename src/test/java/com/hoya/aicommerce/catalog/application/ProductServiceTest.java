@@ -33,22 +33,23 @@ class ProductServiceTest {
 
     @Test
     void 상품이_생성된다() {
-        Product product = Product.create("상품A", "설명", Money.of(1000L), 10);
+        Product product = Product.create("상품A", "설명", Money.of(1000L), 10, 1L);
         given(productRepository.save(any())).willReturn(product);
 
-        CreateProductCommand command = new CreateProductCommand("상품A", "설명", BigDecimal.valueOf(1000), 10);
+        CreateProductCommand command = new CreateProductCommand("상품A", "설명", BigDecimal.valueOf(1000), 10, 1L);
         ProductResult result = productService.createProduct(command);
 
         assertThat(result.name()).isEqualTo("상품A");
         assertThat(result.price()).isEqualByComparingTo(BigDecimal.valueOf(1000));
         assertThat(result.stockQuantity()).isEqualTo(10);
         assertThat(result.status()).isEqualTo(ProductStatus.ON_SALE);
+        assertThat(result.sellerId()).isEqualTo(1L);
         verify(productRepository).save(any());
     }
 
     @Test
     void 상품을_조회한다() {
-        Product product = Product.create("상품A", "설명", Money.of(1000L), 10);
+        Product product = Product.create("상품A", "설명", Money.of(1000L), 10, 1L);
         given(productRepository.findById(1L)).willReturn(Optional.of(product));
 
         ProductResult result = productService.getProduct(1L);
@@ -67,7 +68,7 @@ class ProductServiceTest {
 
     @Test
     void 상품_상태가_변경된다() {
-        Product product = Product.create("상품A", "설명", Money.of(1000L), 10);
+        Product product = Product.create("상품A", "설명", Money.of(1000L), 10, 1L);
         given(productRepository.findById(1L)).willReturn(Optional.of(product));
 
         productService.changeProductStatus(1L, ProductStatus.HIDDEN);

@@ -1,6 +1,6 @@
 # Current State — AI Commerce Platform
 
-> 기준일: 2026-03-13
+> 기준일: 2026-03-13 (ISSUE-06 반영)
 
 ## 개요
 
@@ -132,7 +132,7 @@ Presentation  →  Application  →  Domain  →  Infrastructure(Repository)
 - JWT 기반 인증 (로그인 API, BCrypt 암호화, 인증 필터)
 - 보호 API에서 memberId 쿼리 파라미터 제거 → JWT에서 추출
 - Seller 도메인: 판매자 등록·승인·정지 상태 머신 (PENDING → APPROVED → SUSPENDED)
-- 상품 등록 시 승인된 판매자 여부 검증 (verifyApprovedSeller)
+- 상품 등록 시 승인된 판매자 여부 검증 및 sellerId Product에 저장 (ISSUE-06)
 - 도메인 단위 테스트, 서비스 단위 테스트, 컨트롤러 슬라이스 테스트 모두 통과
 - 공통 응답 포맷(`ApiResponse<T>`) 및 전역 예외 처리
 - Swagger UI를 통한 API 문서 자동 생성

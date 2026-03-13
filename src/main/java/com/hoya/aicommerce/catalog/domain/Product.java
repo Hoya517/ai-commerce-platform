@@ -38,7 +38,9 @@ public class Product {
     @Enumerated(EnumType.STRING)
     private ProductStatus status;
 
-    private Product(String name, String description, Money price, int stockQuantity) {
+    private Long sellerId;
+
+    private Product(String name, String description, Money price, int stockQuantity, Long sellerId) {
         if (price.getValue().compareTo(BigDecimal.ZERO) <= 0) {
             throw new ProductException("Price must be greater than 0");
         }
@@ -47,10 +49,11 @@ public class Product {
         this.price = price;
         this.stockQuantity = stockQuantity;
         this.status = ProductStatus.ON_SALE;
+        this.sellerId = sellerId;
     }
 
-    public static Product create(String name, String description, Money price, int stockQuantity) {
-        return new Product(name, description, price, stockQuantity);
+    public static Product create(String name, String description, Money price, int stockQuantity, Long sellerId) {
+        return new Product(name, description, price, stockQuantity, sellerId);
     }
 
     public void decreaseStock(int quantity) {

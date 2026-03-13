@@ -33,9 +33,9 @@ public class ProductController {
     @Operation(summary = "상품 등록 (판매자 전용)")
     @PostMapping
     public ApiResponse<ProductResponse> createProduct(@Valid @RequestBody CreateProductRequest request) {
-        sellerService.verifyApprovedSeller(authContext.getMemberId());
+        Long sellerId = sellerService.verifyApprovedSeller(authContext.getMemberId());
         CreateProductCommand command = new CreateProductCommand(
-                request.name(), request.description(), request.price(), request.stockQuantity()
+                request.name(), request.description(), request.price(), request.stockQuantity(), sellerId
         );
         return ApiResponse.success(ProductResponse.from(productService.createProduct(command)));
     }

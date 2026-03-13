@@ -23,6 +23,7 @@
 - [x] Seller Entity
 - [x] 판매자 등록 (등록·조회·승인·정지 API)
 - [x] 상품 등록 시 승인된 판매자 검증
+- [x] Product에 sellerId 연결 (ISSUE-06)
 
 ---
 

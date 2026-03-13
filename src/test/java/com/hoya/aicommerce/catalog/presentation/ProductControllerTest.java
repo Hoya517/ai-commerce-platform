@@ -57,11 +57,11 @@ class ProductControllerTest {
         given(jwtProvider.validateToken("test-token")).willReturn(true);
         given(jwtProvider.getMemberId("test-token")).willReturn(1L);
         given(authContext.getMemberId()).willReturn(1L);
-        willDoNothing().given(sellerService).verifyApprovedSeller(1L);
+        given(sellerService.verifyApprovedSeller(1L)).willReturn(1L);
     }
 
     private ProductResult sampleResult() {
-        return new ProductResult(1L, "상품A", "설명", BigDecimal.valueOf(1000), 10, ProductStatus.ON_SALE);
+        return new ProductResult(1L, "상품A", "설명", BigDecimal.valueOf(1000), 10, ProductStatus.ON_SALE, 1L);
     }
 
     @Test

@@ -11,7 +11,8 @@ public record ProductResult(
         String description,
         BigDecimal price,
         int stockQuantity,
-        ProductStatus status
+        ProductStatus status,
+        Long sellerId
 ) {
     public static ProductResult from(Product product) {
         return new ProductResult(
@@ -20,7 +21,8 @@ public record ProductResult(
                 product.getDescription(),
                 product.getPrice().getValue(),
                 product.getStockQuantity(),
-                product.getStatus()
+                product.getStatus(),
+                product.getSellerId()
         );
     }
 }
