@@ -61,8 +61,9 @@
 
 ### Event Architecture
 
-- [ ] OrderCreatedEvent
-- [ ] PaymentConfirmedEvent
+- [x] OrderCreatedEvent (ISSUE-14)
+- [x] PaymentConfirmedEvent (ISSUE-14)
+- [x] PaymentCanceledEvent (ISSUE-14)
 - [ ] Event Listener 구현
 
 ### CI/CD
