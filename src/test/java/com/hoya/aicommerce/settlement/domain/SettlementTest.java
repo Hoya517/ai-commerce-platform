@@ -82,6 +82,29 @@ class SettlementTest {
     }
 
     @Test
+    void removePayment_호출_시_gross_fee_net이_올바르게_차감된다() {
+        Settlement settlement = Settlement.create(SELLER_ID, PERIOD_START, PERIOD_END);
+        settlement.addPayment(Money.of(200_000L), FEE_RATE);
+
+        settlement.removePayment(Money.of(100_000L), FEE_RATE);
+
+        assertThat(settlement.getGrossAmount()).isEqualTo(Money.of(100_000L));
+        assertThat(settlement.getFeeAmount()).isEqualTo(Money.of(10_000L));  // 10%
+        assertThat(settlement.getNetAmount()).isEqualTo(Money.of(90_000L));
+    }
+
+    @Test
+    void COMPLETED_정산에_removePayment_호출_시_예외가_발생한다() {
+        Settlement settlement = Settlement.create(SELLER_ID, PERIOD_START, PERIOD_END);
+        settlement.addPayment(Money.of(100_000L), FEE_RATE);
+        settlement.complete();
+
+        assertThatThrownBy(() -> settlement.removePayment(Money.of(50_000L), FEE_RATE))
+                .isInstanceOf(SettlementException.class)
+                .hasMessageContaining("완료된 정산에서는 결제를 차감할 수 없습니다");
+    }
+
+    @Test
     void 수수료율_소수점_절사_처리된다() {
         Settlement settlement = Settlement.create(SELLER_ID, PERIOD_START, PERIOD_END);
 

@@ -114,6 +114,45 @@ class SettlementServiceTest {
     }
 
     @Test
+    void deductPayment_당월_PENDING_정산에서_차감된다() {
+        LocalDate periodStart = LocalDate.now().withDayOfMonth(1);
+        LocalDate periodEnd = periodStart.withDayOfMonth(periodStart.lengthOfMonth());
+        Settlement existing = Settlement.create(SELLER_ID, periodStart, periodEnd);
+        existing.addPayment(Money.of(200_000L), new java.math.BigDecimal("0.10"));
+        given(settlementRepository.findBySellerIdAndPeriodStartAndPeriodEnd(SELLER_ID, periodStart, periodEnd))
+                .willReturn(Optional.of(existing));
+
+        settlementService.deductPayment(SELLER_ID, Money.of(100_000L));
+
+        assertThat(existing.getGrossAmount()).isEqualTo(Money.of(100_000L));
+    }
+
+    @Test
+    void deductPayment_당월_정산_없으면_로그만_남기고_예외없음() {
+        given(settlementRepository.findBySellerIdAndPeriodStartAndPeriodEnd(any(), any(), any()))
+                .willReturn(Optional.empty());
+
+        org.assertj.core.api.Assertions.assertThatCode(
+                () -> settlementService.deductPayment(SELLER_ID, Money.of(50_000L)))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void deductPayment_COMPLETED_정산이면_로그만_남기고_예외없음() {
+        LocalDate periodStart = LocalDate.now().withDayOfMonth(1);
+        LocalDate periodEnd = periodStart.withDayOfMonth(periodStart.lengthOfMonth());
+        Settlement completed = Settlement.create(SELLER_ID, periodStart, periodEnd);
+        completed.addPayment(Money.of(100_000L), new java.math.BigDecimal("0.10"));
+        completed.complete();
+        given(settlementRepository.findBySellerIdAndPeriodStartAndPeriodEnd(SELLER_ID, periodStart, periodEnd))
+                .willReturn(Optional.of(completed));
+
+        org.assertj.core.api.Assertions.assertThatCode(
+                () -> settlementService.deductPayment(SELLER_ID, Money.of(50_000L)))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
     void 존재하지_않는_정산_조회_시_예외() {
         given(settlementRepository.findById(999L)).willReturn(Optional.empty());
 

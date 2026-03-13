@@ -36,12 +36,13 @@ class SettlementEventListenerTest {
     }
 
     @Test
-    void PaymentCanceledEvent_수신_시_예외_없이_처리된다() {
+    void PaymentCanceledEvent_수신_시_settlementService_deductPayment_호출() {
         PaymentCanceledEvent event = PaymentCanceledEvent.of(
                 1L, 1L, 1L, 10L, BigDecimal.valueOf(50000), PaymentMethod.CARD);
 
-        assertThatCode(() -> listener.onPaymentCanceled(event))
-                .doesNotThrowAnyException();
+        listener.onPaymentCanceled(event);
+
+        verify(settlementService).deductPayment(eq(10L), any());
     }
 
     @Test

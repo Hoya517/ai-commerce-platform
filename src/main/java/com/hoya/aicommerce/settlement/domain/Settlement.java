@@ -91,6 +91,23 @@ public class Settlement {
     }
 
     /**
+     * 결제 취소 건을 정산 대상에서 차감한다.
+     * grossAmount 차감 → feeAmount 재계산 → netAmount = gross - fee
+     *
+     * @param paymentAmount 취소된 결제 금액
+     * @param feeRate       수수료율 (예: 0.10 = 10%)
+     */
+    public void removePayment(Money paymentAmount, BigDecimal feeRate) {
+        if (status != SettlementStatus.PENDING) {
+            throw new SettlementException("완료된 정산에서는 결제를 차감할 수 없습니다");
+        }
+        Money fee = Money.of(paymentAmount.getValue().multiply(feeRate).setScale(0, RoundingMode.DOWN));
+        this.grossAmount = this.grossAmount.subtract(paymentAmount);
+        this.feeAmount = this.feeAmount.subtract(fee);
+        this.netAmount = this.grossAmount.subtract(this.feeAmount);
+    }
+
+    /**
      * 정산을 확정한다. PENDING → COMPLETED
      */
     public void complete() {

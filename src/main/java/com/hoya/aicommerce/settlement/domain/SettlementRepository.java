@@ -12,4 +12,6 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
             Long sellerId, LocalDate periodStart, LocalDate periodEnd);
 
     List<Settlement> findBySellerId(Long sellerId);
+
+    List<Settlement> findByStatusAndPeriodEndLessThanEqual(SettlementStatus status, LocalDate date);
 }

@@ -1,5 +1,7 @@
 package com.hoya.aicommerce.settlement.presentation;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.hoya.aicommerce.common.auth.AuthContext;
 import com.hoya.aicommerce.common.auth.JwtProvider;
 import com.hoya.aicommerce.seller.application.SellerService;
@@ -8,10 +10,17 @@ import com.hoya.aicommerce.settlement.application.SettlementService;
 import com.hoya.aicommerce.settlement.application.dto.SettlementResult;
 import com.hoya.aicommerce.settlement.domain.SettlementStatus;
 import com.hoya.aicommerce.settlement.exception.SettlementException;
+import com.hoya.aicommerce.settlement.presentation.request.SettlementBatchRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.batch.core.job.Job;
+import org.springframework.batch.core.job.JobExecution;
+import org.springframework.batch.core.job.JobInstance;
+import org.springframework.batch.core.job.parameters.JobParameters;
+import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -19,8 +28,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -41,6 +52,12 @@ class SettlementControllerTest {
 
     @MockitoBean
     private AuthContext authContext;
+
+    @MockitoBean
+    private JobLauncher jobLauncher;
+
+    @MockitoBean
+    private Job settlementJob;
 
     private static final Long MEMBER_ID = 1L;
     private static final Long SELLER_ID = 10L;
@@ -114,5 +131,30 @@ class SettlementControllerTest {
                         .header("Authorization", "Bearer test-token"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void 정산_배치_수동_실행_성공() throws Exception {
+        JobExecution execution = new JobExecution(42L, new JobInstance(1L, "settlementJob"), new JobParameters());
+        given(jobLauncher.run(any(), any())).willReturn(execution);
+
+        ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+        SettlementBatchRequest request = new SettlementBatchRequest(LocalDate.of(2026, 2, 28));
+
+        mockMvc.perform(post("/settlements/batch")
+                        .header("Authorization", "Bearer test-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.jobExecutionId").value(42))
+                .andExpect(jsonPath("$.data.processedCount").value(0));
+    }
+
+    @Test
+    void 정산_배치_인증_없으면_401() throws Exception {
+        mockMvc.perform(post("/settlements/batch")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized());
     }
 }

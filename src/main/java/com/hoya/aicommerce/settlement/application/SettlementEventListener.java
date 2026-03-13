@@ -36,8 +36,8 @@ public class SettlementEventListener {
     @Async("eventTaskExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onPaymentCanceled(PaymentCanceledEvent event) {
-        log.info("[Settlement] 정산 취소 예약 — paymentId={}, sellerId={}, amount={}",
+        log.info("[Settlement] 정산 차감 — paymentId={}, sellerId={}, amount={}",
                 event.paymentId(), event.sellerId(), event.amount());
-        // TODO: 정산 차감 처리 (ISSUE-20 배치/정산 확정 시 구현)
+        settlementService.deductPayment(event.sellerId(), Money.of(event.amount()));
     }
 }
