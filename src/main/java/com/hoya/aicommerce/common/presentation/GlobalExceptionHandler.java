@@ -7,6 +7,7 @@ import com.hoya.aicommerce.member.exception.MemberException;
 import com.hoya.aicommerce.order.exception.OrderException;
 import com.hoya.aicommerce.payment.exception.PaymentException;
 import com.hoya.aicommerce.seller.exception.SellerException;
+import com.hoya.aicommerce.wallet.exception.WalletException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -23,7 +24,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error(e.getMessage()));
     }
 
-    @ExceptionHandler({ProductException.class, CartException.class, OrderException.class, PaymentException.class, MemberException.class, SellerException.class})
+    @ExceptionHandler({ProductException.class, CartException.class, OrderException.class, PaymentException.class, MemberException.class, SellerException.class, WalletException.class})
     public ResponseEntity<ApiResponse<Void>> handleDomainException(RuntimeException e) {
         return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
     }

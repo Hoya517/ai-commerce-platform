@@ -43,6 +43,10 @@ public class Money {
         return new Money(this.value.multiply(BigDecimal.valueOf(multiplier)));
     }
 
+    public Money subtract(Money other) {
+        return new Money(this.value.subtract(other.value));
+    }
+
     public boolean isGreaterThan(Money other) {
         return this.value.compareTo(other.value) > 0;
     }

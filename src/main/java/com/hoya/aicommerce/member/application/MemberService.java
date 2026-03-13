@@ -8,6 +8,7 @@ import com.hoya.aicommerce.member.application.dto.RegisterMemberCommand;
 import com.hoya.aicommerce.member.domain.Member;
 import com.hoya.aicommerce.member.domain.MemberRepository;
 import com.hoya.aicommerce.member.exception.MemberException;
+import com.hoya.aicommerce.wallet.application.WalletService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
+    private final WalletService walletService;
 
     @Transactional
     public MemberResult registerMember(RegisterMemberCommand command) {
@@ -27,7 +29,9 @@ public class MemberService {
             throw new MemberException("Email already in use");
         }
         Member member = Member.create(command.email(), passwordEncoder.encode(command.password()), command.name());
-        return MemberResult.from(memberRepository.save(member));
+        MemberResult result = MemberResult.from(memberRepository.save(member));
+        walletService.createWallet(result.id());
+        return result;
     }
 
     @Transactional(readOnly = true)

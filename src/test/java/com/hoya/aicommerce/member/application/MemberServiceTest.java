@@ -10,6 +10,7 @@ import com.hoya.aicommerce.member.domain.MemberRepository;
 import com.hoya.aicommerce.member.domain.MemberRole;
 import com.hoya.aicommerce.member.domain.MemberStatus;
 import com.hoya.aicommerce.member.exception.MemberException;
+import com.hoya.aicommerce.wallet.application.WalletService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -37,6 +38,9 @@ class MemberServiceTest {
 
     @Mock
     private JwtProvider jwtProvider;
+
+    @Mock
+    private WalletService walletService;
 
     @InjectMocks
     private MemberService memberService;

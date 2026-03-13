@@ -27,13 +27,14 @@
 
 ---
 
-## Phase 3 — Wallet (Balance System)
+## Phase 3 — Wallet (Balance System) ✅
 
 **Goal:** Introduce a wallet system for user balance and internal payments.
 
-- [ ] Wallet Entity
-- [ ] Balance charge API
-- [ ] Balance deduction for orders
+- [x] Wallet Entity
+- [x] Auto-create wallet on member registration
+- [x] Balance charge API
+- [x] Balance deduction domain method (API deferred to payment integration)
 
 ---
 
