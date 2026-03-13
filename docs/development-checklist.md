@@ -58,7 +58,7 @@
 - [x] 수수료 정책 — FeePolicy (STANDARD_RATE 10%, calculateFee/Net) (ISSUE-18)
 - [x] 정산 대상 적재 — SettlementService.accumulate(), SettlementEventListener 연결 (ISSUE-19)
 - [x] 판매자 정산 조회 — GET /settlements/me, GET /settlements/{id} (ISSUE-21)
-- [ ] 정산 배치
+- [x] 정산 배치 — Spring Batch 6 Job, @Scheduled 월말 자동 실행, POST /settlements/batch 수동 API (ISSUE-20)
 
 ### Event Architecture
 
