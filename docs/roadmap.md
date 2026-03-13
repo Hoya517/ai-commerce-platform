@@ -10,9 +10,9 @@
 
 - [x] Member Entity
 - [x] 회원가입 API
-- [ ] 로그인 API
-- [ ] JWT Authentication
-- [ ] Security Filter
+- [x] 로그인 API
+- [x] JWT Authentication
+- [x] Security Filter
 
 ---
 

@@ -7,6 +7,9 @@ import com.hoya.aicommerce.cart.application.dto.CartResult;
 import com.hoya.aicommerce.cart.exception.CartException;
 import com.hoya.aicommerce.cart.presentation.request.AddCartItemRequest;
 import com.hoya.aicommerce.cart.presentation.request.UpdateCartItemQuantityRequest;
+import com.hoya.aicommerce.common.auth.AuthContext;
+import com.hoya.aicommerce.common.auth.JwtProvider;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -18,7 +21,6 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.BDDMockito.willThrow;
@@ -40,6 +42,19 @@ class CartControllerTest {
     @MockitoBean
     private CartService cartService;
 
+    @MockitoBean
+    private JwtProvider jwtProvider;
+
+    @MockitoBean
+    private AuthContext authContext;
+
+    @BeforeEach
+    void setUp() {
+        given(jwtProvider.validateToken("test-token")).willReturn(true);
+        given(jwtProvider.getMemberId("test-token")).willReturn(1L);
+        given(authContext.getMemberId()).willReturn(1L);
+    }
+
     private CartResult emptyCart() {
         return new CartResult(1L, 1L, List.of());
     }
@@ -53,7 +68,8 @@ class CartControllerTest {
     void 장바구니_조회_성공() throws Exception {
         given(cartService.getCart(1L)).willReturn(emptyCart());
 
-        mockMvc.perform(get("/cart").param("memberId", "1"))
+        mockMvc.perform(get("/cart")
+                        .header("Authorization", "Bearer test-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.memberId").value(1))
@@ -61,10 +77,19 @@ class CartControllerTest {
     }
 
     @Test
-    void 장바구니_조회_실패() throws Exception {
-        given(cartService.getCart(99L)).willThrow(new CartException("Cart not found"));
+    void 장바구니_조회_인증_없으면_401() throws Exception {
+        given(jwtProvider.validateToken(any())).willReturn(false);
 
-        mockMvc.perform(get("/cart").param("memberId", "99"))
+        mockMvc.perform(get("/cart"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void 장바구니_조회_실패() throws Exception {
+        given(cartService.getCart(1L)).willThrow(new CartException("Cart not found"));
+
+        mockMvc.perform(get("/cart")
+                        .header("Authorization", "Bearer test-token"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Cart not found"));
@@ -74,9 +99,10 @@ class CartControllerTest {
     void 장바구니_상품_추가_성공() throws Exception {
         given(cartService.addItem(any())).willReturn(cartWithItem());
 
-        AddCartItemRequest request = new AddCartItemRequest(1L, 10L, 2);
+        AddCartItemRequest request = new AddCartItemRequest(10L, 2);
 
         mockMvc.perform(post("/cart/items")
+                        .header("Authorization", "Bearer test-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -87,9 +113,10 @@ class CartControllerTest {
 
     @Test
     void 장바구니_상품_추가_유효성_실패() throws Exception {
-        AddCartItemRequest request = new AddCartItemRequest(1L, 10L, 0);
+        AddCartItemRequest request = new AddCartItemRequest(10L, 0);
 
         mockMvc.perform(post("/cart/items")
+                        .header("Authorization", "Bearer test-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -101,9 +128,10 @@ class CartControllerTest {
         CartItemResult updatedItem = new CartItemResult(10L, "상품A", BigDecimal.valueOf(1000), 5);
         given(cartService.updateItemQuantity(any())).willReturn(new CartResult(1L, 1L, List.of(updatedItem)));
 
-        UpdateCartItemQuantityRequest request = new UpdateCartItemQuantityRequest(1L, 5);
+        UpdateCartItemQuantityRequest request = new UpdateCartItemQuantityRequest(5);
 
         mockMvc.perform(patch("/cart/items/10")
+                        .header("Authorization", "Bearer test-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -113,9 +141,10 @@ class CartControllerTest {
 
     @Test
     void 장바구니_상품_삭제_성공() throws Exception {
-        willDoNothing().given(cartService).removeItem(eq(1L), eq(10L));
+        willDoNothing().given(cartService).removeItem(1L, 10L);
 
-        mockMvc.perform(delete("/cart/items/10").param("memberId", "1"))
+        mockMvc.perform(delete("/cart/items/10")
+                        .header("Authorization", "Bearer test-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
     }

@@ -1,6 +1,8 @@
 package com.hoya.aicommerce.payment.presentation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hoya.aicommerce.common.auth.AuthContext;
+import com.hoya.aicommerce.common.auth.JwtProvider;
 import com.hoya.aicommerce.order.exception.OrderException;
 import com.hoya.aicommerce.payment.application.PaymentService;
 import com.hoya.aicommerce.payment.application.dto.PaymentResult;
@@ -38,6 +40,12 @@ class PaymentControllerTest {
 
     @MockitoBean
     private PaymentService paymentService;
+
+    @MockitoBean
+    private JwtProvider jwtProvider;
+
+    @MockitoBean
+    private AuthContext authContext;
 
     private PaymentResult readyPaymentResult() {
         return new PaymentResult(1L, 1L, BigDecimal.valueOf(2000), PaymentMethod.CARD, PaymentStatus.READY, null, null);

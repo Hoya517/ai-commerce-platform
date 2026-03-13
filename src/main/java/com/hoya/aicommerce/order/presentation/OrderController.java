@@ -1,9 +1,10 @@
 package com.hoya.aicommerce.order.presentation;
 
+import com.hoya.aicommerce.common.auth.AuthContext;
+import com.hoya.aicommerce.common.presentation.ApiResponse;
 import com.hoya.aicommerce.order.application.OrderService;
 import com.hoya.aicommerce.order.application.dto.CreateOrderCommand;
 import com.hoya.aicommerce.order.application.dto.OrderItemCommand;
-import com.hoya.aicommerce.common.presentation.ApiResponse;
 import com.hoya.aicommerce.order.presentation.request.CreateOrderRequest;
 import com.hoya.aicommerce.order.presentation.response.OrderResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,6 +27,7 @@ import java.util.List;
 public class OrderController {
 
     private final OrderService orderService;
+    private final AuthContext authContext;
 
     @Operation(summary = "주문 생성")
     @PostMapping
@@ -33,7 +35,7 @@ public class OrderController {
         List<OrderItemCommand> items = request.items().stream()
                 .map(item -> new OrderItemCommand(item.productId(), item.quantity()))
                 .toList();
-        CreateOrderCommand command = new CreateOrderCommand(request.memberId(), items);
+        CreateOrderCommand command = new CreateOrderCommand(authContext.getMemberId(), items);
         return ApiResponse.success(OrderResponse.from(orderService.createOrder(command)));
     }
 

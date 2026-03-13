@@ -1,6 +1,8 @@
 package com.hoya.aicommerce.order.presentation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hoya.aicommerce.common.auth.AuthContext;
+import com.hoya.aicommerce.common.auth.JwtProvider;
 import com.hoya.aicommerce.order.application.OrderService;
 import com.hoya.aicommerce.order.application.dto.OrderItemResult;
 import com.hoya.aicommerce.order.application.dto.OrderResult;
@@ -8,6 +10,7 @@ import com.hoya.aicommerce.order.domain.OrderStatus;
 import com.hoya.aicommerce.order.exception.OrderException;
 import com.hoya.aicommerce.order.presentation.request.CreateOrderRequest;
 import com.hoya.aicommerce.order.presentation.request.OrderItemRequest;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -38,6 +41,19 @@ class OrderControllerTest {
     @MockitoBean
     private OrderService orderService;
 
+    @MockitoBean
+    private JwtProvider jwtProvider;
+
+    @MockitoBean
+    private AuthContext authContext;
+
+    @BeforeEach
+    void setUp() {
+        given(jwtProvider.validateToken("test-token")).willReturn(true);
+        given(jwtProvider.getMemberId("test-token")).willReturn(1L);
+        given(authContext.getMemberId()).willReturn(1L);
+    }
+
     private OrderResult sampleOrderResult() {
         OrderItemResult item = new OrderItemResult(10L, "상품A", BigDecimal.valueOf(1000), 2);
         return new OrderResult(1L, 1L, OrderStatus.CREATED, BigDecimal.valueOf(2000), List.of(item));
@@ -47,9 +63,10 @@ class OrderControllerTest {
     void 주문_생성_성공() throws Exception {
         given(orderService.createOrder(any())).willReturn(sampleOrderResult());
 
-        CreateOrderRequest request = new CreateOrderRequest(1L, List.of(new OrderItemRequest(10L, 2)));
+        CreateOrderRequest request = new CreateOrderRequest(List.of(new OrderItemRequest(10L, 2)));
 
         mockMvc.perform(post("/orders")
+                        .header("Authorization", "Bearer test-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -61,21 +78,25 @@ class OrderControllerTest {
     }
 
     @Test
-    void 주문_생성_유효성_실패_항목_없음() throws Exception {
-        CreateOrderRequest request = new CreateOrderRequest(1L, List.of());
+    void 주문_생성_인증_없으면_401() throws Exception {
+        given(jwtProvider.validateToken(any())).willReturn(false);
+
+        CreateOrderRequest request = new CreateOrderRequest(List.of(new OrderItemRequest(10L, 2)));
 
         mockMvc.perform(post("/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false));
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void 주문_생성_유효성_실패_memberId_없음() throws Exception {
+    void 주문_생성_유효성_실패_항목_없음() throws Exception {
+        CreateOrderRequest request = new CreateOrderRequest(List.of());
+
         mockMvc.perform(post("/orders")
+                        .header("Authorization", "Bearer test-token")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"items\":[{\"productId\":10,\"quantity\":1}]}"))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false));
     }

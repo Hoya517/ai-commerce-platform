@@ -11,9 +11,9 @@
 
 - [x] Member Entity
 - [x] 회원가입 API
-- [ ] 로그인 API
-- [ ] JWT 인증
-- [ ] 인증 필터 적용
+- [x] 로그인 API
+- [x] JWT 인증
+- [x] 인증 필터 적용
 
 ### Product / Catalog
 

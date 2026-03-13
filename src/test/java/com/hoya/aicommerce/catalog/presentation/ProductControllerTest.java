@@ -2,6 +2,8 @@ package com.hoya.aicommerce.catalog.presentation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hoya.aicommerce.catalog.application.ProductService;
+import com.hoya.aicommerce.common.auth.AuthContext;
+import com.hoya.aicommerce.common.auth.JwtProvider;
 import com.hoya.aicommerce.catalog.application.dto.ProductResult;
 import com.hoya.aicommerce.catalog.domain.ProductStatus;
 import com.hoya.aicommerce.catalog.exception.ProductException;
@@ -37,6 +39,12 @@ class ProductControllerTest {
 
     @MockitoBean
     private ProductService productService;
+
+    @MockitoBean
+    private JwtProvider jwtProvider;
+
+    @MockitoBean
+    private AuthContext authContext;
 
     private ProductResult sampleResult() {
         return new ProductResult(1L, "상품A", "설명", BigDecimal.valueOf(1000), 10, ProductStatus.ON_SALE);

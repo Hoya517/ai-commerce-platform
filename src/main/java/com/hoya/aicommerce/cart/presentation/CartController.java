@@ -6,6 +6,7 @@ import com.hoya.aicommerce.cart.application.dto.UpdateCartItemQuantityCommand;
 import com.hoya.aicommerce.cart.presentation.request.AddCartItemRequest;
 import com.hoya.aicommerce.cart.presentation.request.UpdateCartItemQuantityRequest;
 import com.hoya.aicommerce.cart.presentation.response.CartResponse;
+import com.hoya.aicommerce.common.auth.AuthContext;
 import com.hoya.aicommerce.common.presentation.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,7 +19,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Cart", description = "장바구니 API")
@@ -28,18 +28,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class CartController {
 
     private final CartService cartService;
+    private final AuthContext authContext;
 
     @Operation(summary = "장바구니 조회")
     @GetMapping
-    public ApiResponse<CartResponse> getCart(@RequestParam Long memberId) {
-        return ApiResponse.success(CartResponse.from(cartService.getCart(memberId)));
+    public ApiResponse<CartResponse> getCart() {
+        return ApiResponse.success(CartResponse.from(cartService.getCart(authContext.getMemberId())));
     }
 
     @Operation(summary = "장바구니 상품 추가")
     @PostMapping("/items")
     public ApiResponse<CartResponse> addItem(@Valid @RequestBody AddCartItemRequest request) {
         AddCartItemCommand command = new AddCartItemCommand(
-                request.memberId(), request.productId(), request.quantity()
+                authContext.getMemberId(), request.productId(), request.quantity()
         );
         return ApiResponse.success(CartResponse.from(cartService.addItem(command)));
     }
@@ -51,18 +52,15 @@ public class CartController {
             @Valid @RequestBody UpdateCartItemQuantityRequest request
     ) {
         UpdateCartItemQuantityCommand command = new UpdateCartItemQuantityCommand(
-                request.memberId(), productId, request.quantity()
+                authContext.getMemberId(), productId, request.quantity()
         );
         return ApiResponse.success(CartResponse.from(cartService.updateItemQuantity(command)));
     }
 
     @Operation(summary = "장바구니 상품 삭제")
     @DeleteMapping("/items/{productId}")
-    public ApiResponse<Void> removeItem(
-            @PathVariable Long productId,
-            @RequestParam Long memberId
-    ) {
-        cartService.removeItem(memberId, productId);
+    public ApiResponse<Void> removeItem(@PathVariable Long productId) {
+        cartService.removeItem(authContext.getMemberId(), productId);
         return ApiResponse.success(null);
     }
 }
