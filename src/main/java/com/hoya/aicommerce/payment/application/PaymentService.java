@@ -13,6 +13,10 @@ import com.hoya.aicommerce.payment.domain.Payment;
 import com.hoya.aicommerce.payment.domain.PaymentMethod;
 import com.hoya.aicommerce.payment.domain.PaymentRepository;
 import com.hoya.aicommerce.payment.exception.PaymentException;
+import com.hoya.aicommerce.payment.infrastructure.pg.PgGateway;
+import com.hoya.aicommerce.payment.infrastructure.pg.dto.PgCancelResponse;
+import com.hoya.aicommerce.payment.infrastructure.pg.dto.PgConfirmResponse;
+import com.hoya.aicommerce.payment.infrastructure.pg.dto.PgPrepareResponse;
 import com.hoya.aicommerce.wallet.application.WalletService;
 import com.hoya.aicommerce.wallet.application.dto.ChargeWalletCommand;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +31,7 @@ public class PaymentService {
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final WalletService walletService;
+    private final PgGateway pgGateway;
 
     @Transactional
     public PaymentResult requestPayment(RequestPaymentCommand command) {
@@ -36,6 +41,11 @@ public class PaymentService {
         order.startPayment();
 
         Payment payment = Payment.create(order.getId(), order.getTotalAmount(), command.method());
+
+        // PG에 결제 준비 요청 → paymentKey 발급받아 Payment에 저장 (READY → REQUESTED)
+        PgPrepareResponse pgResponse = pgGateway.prepare(order.getId(), order.getTotalAmount(), command.method());
+        payment.request(pgResponse.paymentKey());
+
         return PaymentResult.from(paymentRepository.save(payment));
     }
 
@@ -44,11 +54,18 @@ public class PaymentService {
         Payment payment = paymentRepository.findById(command.paymentId())
                 .orElseThrow(() -> new PaymentException("Payment not found"));
 
-        payment.request(command.paymentKey());
-        payment.approve();
-
         Order order = orderRepository.findById(payment.getOrderId())
                 .orElseThrow(() -> new OrderException("Order not found"));
+
+        // 서버가 내부 보유한 paymentKey로 PG에 승인 요청
+        PgConfirmResponse pgResponse = pgGateway.confirm(payment.getPaymentKey(), order.getTotalAmount());
+
+        if (!pgResponse.success()) {
+            payment.fail(pgResponse.failureCode(), pgResponse.failureMessage());
+            throw new PaymentException(pgResponse.failureMessage());
+        }
+
+        payment.approve();
         order.markPaid();
 
         return PaymentResult.from(payment);
@@ -80,6 +97,14 @@ public class PaymentService {
 
         if (!order.getMemberId().equals(memberId)) {
             throw new PaymentException("Unauthorized to cancel this payment");
+        }
+
+        // WALLET 제외: PG에 취소 요청
+        if (payment.getMethod() != PaymentMethod.WALLET) {
+            PgCancelResponse pgResponse = pgGateway.cancel(payment.getPaymentKey(), payment.getAmount());
+            if (!pgResponse.success()) {
+                throw new PaymentException(pgResponse.failureMessage());
+            }
         }
 
         payment.cancel();

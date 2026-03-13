@@ -108,7 +108,7 @@ class PaymentControllerTest {
     void 결제_승인_성공() throws Exception {
         given(paymentService.confirmPayment(any())).willReturn(approvedPaymentResult());
 
-        ConfirmPaymentRequest request = new ConfirmPaymentRequest(1L, "pay-key-abc");
+        ConfirmPaymentRequest request = new ConfirmPaymentRequest(1L);
 
         mockMvc.perform(post("/payments/confirm")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -120,11 +120,9 @@ class PaymentControllerTest {
 
     @Test
     void 결제_승인_유효성_실패() throws Exception {
-        ConfirmPaymentRequest request = new ConfirmPaymentRequest(1L, "");
-
         mockMvc.perform(post("/payments/confirm")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content("{}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false));
     }
@@ -133,7 +131,7 @@ class PaymentControllerTest {
     void 존재하지_않는_결제_승인_실패() throws Exception {
         given(paymentService.confirmPayment(any())).willThrow(new PaymentException("Payment not found"));
 
-        ConfirmPaymentRequest request = new ConfirmPaymentRequest(99L, "pay-key-abc");
+        ConfirmPaymentRequest request = new ConfirmPaymentRequest(99L);
 
         mockMvc.perform(post("/payments/confirm")
                         .contentType(MediaType.APPLICATION_JSON)

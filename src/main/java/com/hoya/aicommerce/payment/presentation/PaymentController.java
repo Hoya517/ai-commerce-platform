@@ -41,7 +41,7 @@ public class PaymentController {
     @Operation(summary = "결제 승인")
     @PostMapping("/confirm")
     public ApiResponse<PaymentResponse> confirmPayment(@Valid @RequestBody ConfirmPaymentRequest request) {
-        ConfirmPaymentCommand command = new ConfirmPaymentCommand(request.paymentId(), request.paymentKey());
+        ConfirmPaymentCommand command = new ConfirmPaymentCommand(request.paymentId());
         return ApiResponse.success(PaymentResponse.from(paymentService.confirmPayment(command)));
     }
 

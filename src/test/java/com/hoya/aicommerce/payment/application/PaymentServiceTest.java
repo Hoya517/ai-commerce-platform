@@ -18,6 +18,10 @@ import com.hoya.aicommerce.payment.domain.PaymentMethod;
 import com.hoya.aicommerce.payment.domain.PaymentRepository;
 import com.hoya.aicommerce.payment.domain.PaymentStatus;
 import com.hoya.aicommerce.payment.exception.PaymentException;
+import com.hoya.aicommerce.payment.infrastructure.pg.PgGateway;
+import com.hoya.aicommerce.payment.infrastructure.pg.dto.PgCancelResponse;
+import com.hoya.aicommerce.payment.infrastructure.pg.dto.PgConfirmResponse;
+import com.hoya.aicommerce.payment.infrastructure.pg.dto.PgPrepareResponse;
 import com.hoya.aicommerce.wallet.application.WalletService;
 import com.hoya.aicommerce.wallet.exception.WalletException;
 import org.junit.jupiter.api.Test;
@@ -54,6 +58,9 @@ class PaymentServiceTest {
     @Mock
     private WalletService walletService;
 
+    @Mock
+    private PgGateway pgGateway;
+
     @InjectMocks
     private PaymentService paymentService;
 
@@ -64,12 +71,13 @@ class PaymentServiceTest {
         order.addItem(10L, "상품A", Money.of(1000L), 2);
         given(orderRepository.findById(1L)).willReturn(Optional.of(order));
         given(paymentRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+        given(pgGateway.prepare(any(), any(), any())).willReturn(new PgPrepareResponse("mock-key-001"));
 
         PaymentResult result = paymentService.requestPayment(
                 new RequestPaymentCommand(1L, PaymentMethod.CARD));
 
         assertThat(result.orderId()).isEqualTo(1L);
-        assertThat(result.status()).isEqualTo(PaymentStatus.READY);
+        assertThat(result.status()).isEqualTo(PaymentStatus.REQUESTED);
         assertThat(result.method()).isEqualTo(PaymentMethod.CARD);
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAYMENT_PENDING);
     }
@@ -86,15 +94,16 @@ class PaymentServiceTest {
     @Test
     void 결제가_승인된다() {
         Payment payment = Payment.create(1L, Money.of(2000L), PaymentMethod.CARD);
+        payment.request("mock-pg-key-abc");  // requestPayment 단계에서 발급된 paymentKey
         Order order = Order.create(1L);
         order.addItem(10L, "상품A", Money.of(2000L), 1);
         order.startPayment();
 
         given(paymentRepository.findById(1L)).willReturn(Optional.of(payment));
         given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+        given(pgGateway.confirm(any(), any())).willReturn(new PgConfirmResponse(true, null, null));
 
-        PaymentResult result = paymentService.confirmPayment(
-                new ConfirmPaymentCommand(1L, "pay-key-abc"));
+        PaymentResult result = paymentService.confirmPayment(new ConfirmPaymentCommand(1L));
 
         assertThat(result.status()).isEqualTo(PaymentStatus.APPROVED);
         assertThat(result.approvedAt()).isNotNull();
@@ -102,11 +111,30 @@ class PaymentServiceTest {
     }
 
     @Test
+    void PG_승인_실패시_결제가_FAILED_상태가_된다() {
+        Payment payment = Payment.create(1L, Money.of(2000L), PaymentMethod.CARD);
+        payment.request("mock-pg-key-abc");
+        Order order = Order.create(1L);
+        order.addItem(10L, "상품A", Money.of(2000L), 1);
+        order.startPayment();
+
+        given(paymentRepository.findById(1L)).willReturn(Optional.of(payment));
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+        given(pgGateway.confirm(any(), any()))
+                .willReturn(new PgConfirmResponse(false, "CARD_LIMIT_EXCEEDED", "카드 한도가 초과되었습니다"));
+
+        assertThatThrownBy(() -> paymentService.confirmPayment(new ConfirmPaymentCommand(1L)))
+                .isInstanceOf(PaymentException.class)
+                .hasMessage("카드 한도가 초과되었습니다");
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.FAILED);
+    }
+
+    @Test
     void 존재하지_않는_결제_승인시_예외가_발생한다() {
         given(paymentRepository.findById(99L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> paymentService.confirmPayment(
-                new ConfirmPaymentCommand(99L, "pay-key-abc")))
+                new ConfirmPaymentCommand(99L)))
                 .isInstanceOf(PaymentException.class);
     }
 
@@ -166,6 +194,7 @@ class PaymentServiceTest {
         given(paymentRepository.findById(1L)).willReturn(Optional.of(payment));
         given(orderRepository.findById(1L)).willReturn(Optional.of(order));
         given(productRepository.findByIdWithLock(10L)).willReturn(Optional.of(product));
+        given(pgGateway.cancel(any(), any())).willReturn(new PgCancelResponse(true, null, null));
 
         PaymentResult result = paymentService.cancelPayment(1L, 1L);
 
