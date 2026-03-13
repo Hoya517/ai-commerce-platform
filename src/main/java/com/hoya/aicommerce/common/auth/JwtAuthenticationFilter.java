@@ -50,6 +50,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         String method = request.getMethod();
         return path.startsWith("/cart") ||
+                path.startsWith("/settlements") ||
                 (path.equals("/orders") && "POST".equalsIgnoreCase(method)) ||
                 (path.equals("/sellers") && "POST".equalsIgnoreCase(method)) ||
                 (path.equals("/products") && "POST".equalsIgnoreCase(method)) ||
