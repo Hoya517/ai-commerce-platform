@@ -36,6 +36,7 @@
 - [x] 결제 취소
 - [x] 결제 환불 (WALLET 자동 환불 포함)
 - [x] OrderStatus / PaymentStatus 상태 머신 가드 강화 (ISSUE-11)
+- [x] 민감정보 암호화 — AES-256 DB 암호화, API 응답 마스킹, 환경변수 이전 (ISSUE-12)
 
 ### Wallet (예치금)
 
