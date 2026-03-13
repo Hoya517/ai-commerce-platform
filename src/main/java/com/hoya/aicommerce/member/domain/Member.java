@@ -47,4 +47,8 @@ public class Member {
     public static Member create(String email, String password, String name) {
         return new Member(email, password, name);
     }
+
+    public void promoteToSeller() {
+        this.role = MemberRole.SELLER;
+    }
 }

@@ -2,13 +2,16 @@ package com.hoya.aicommerce.catalog.presentation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hoya.aicommerce.catalog.application.ProductService;
-import com.hoya.aicommerce.common.auth.AuthContext;
-import com.hoya.aicommerce.common.auth.JwtProvider;
 import com.hoya.aicommerce.catalog.application.dto.ProductResult;
 import com.hoya.aicommerce.catalog.domain.ProductStatus;
 import com.hoya.aicommerce.catalog.exception.ProductException;
 import com.hoya.aicommerce.catalog.presentation.request.ChangeProductStatusRequest;
 import com.hoya.aicommerce.catalog.presentation.request.CreateProductRequest;
+import com.hoya.aicommerce.common.auth.AuthContext;
+import com.hoya.aicommerce.common.auth.JwtProvider;
+import com.hoya.aicommerce.seller.application.SellerService;
+import com.hoya.aicommerce.seller.exception.SellerException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -41,10 +44,21 @@ class ProductControllerTest {
     private ProductService productService;
 
     @MockitoBean
+    private SellerService sellerService;
+
+    @MockitoBean
     private JwtProvider jwtProvider;
 
     @MockitoBean
     private AuthContext authContext;
+
+    @BeforeEach
+    void setUp() {
+        given(jwtProvider.validateToken("test-token")).willReturn(true);
+        given(jwtProvider.getMemberId("test-token")).willReturn(1L);
+        given(authContext.getMemberId()).willReturn(1L);
+        willDoNothing().given(sellerService).verifyApprovedSeller(1L);
+    }
 
     private ProductResult sampleResult() {
         return new ProductResult(1L, "상품A", "설명", BigDecimal.valueOf(1000), 10, ProductStatus.ON_SALE);
@@ -57,6 +71,7 @@ class ProductControllerTest {
         CreateProductRequest request = new CreateProductRequest("상품A", "설명", BigDecimal.valueOf(1000), 10);
 
         mockMvc.perform(post("/products")
+                        .header("Authorization", "Bearer test-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -66,10 +81,27 @@ class ProductControllerTest {
     }
 
     @Test
+    void 판매자_미승인이면_상품_등록_실패() throws Exception {
+        willThrow(new SellerException("승인된 판매자만 상품을 등록할 수 있습니다"))
+                .given(sellerService).verifyApprovedSeller(1L);
+
+        CreateProductRequest request = new CreateProductRequest("상품A", "설명", BigDecimal.valueOf(1000), 10);
+
+        mockMvc.perform(post("/products")
+                        .header("Authorization", "Bearer test-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("승인된 판매자만 상품을 등록할 수 있습니다"));
+    }
+
+    @Test
     void 상품_생성_유효성_실패() throws Exception {
         CreateProductRequest request = new CreateProductRequest("", "설명", BigDecimal.valueOf(1000), 10);
 
         mockMvc.perform(post("/products")
+                        .header("Authorization", "Bearer test-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())

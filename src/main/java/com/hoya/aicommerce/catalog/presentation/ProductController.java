@@ -2,10 +2,12 @@ package com.hoya.aicommerce.catalog.presentation;
 
 import com.hoya.aicommerce.catalog.application.ProductService;
 import com.hoya.aicommerce.catalog.application.dto.CreateProductCommand;
-import com.hoya.aicommerce.common.presentation.ApiResponse;
 import com.hoya.aicommerce.catalog.presentation.request.ChangeProductStatusRequest;
 import com.hoya.aicommerce.catalog.presentation.request.CreateProductRequest;
 import com.hoya.aicommerce.catalog.presentation.response.ProductResponse;
+import com.hoya.aicommerce.common.auth.AuthContext;
+import com.hoya.aicommerce.common.presentation.ApiResponse;
+import com.hoya.aicommerce.seller.application.SellerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -25,10 +27,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class ProductController {
 
     private final ProductService productService;
+    private final SellerService sellerService;
+    private final AuthContext authContext;
 
-    @Operation(summary = "상품 등록")
+    @Operation(summary = "상품 등록 (판매자 전용)")
     @PostMapping
     public ApiResponse<ProductResponse> createProduct(@Valid @RequestBody CreateProductRequest request) {
+        sellerService.verifyApprovedSeller(authContext.getMemberId());
         CreateProductCommand command = new CreateProductCommand(
                 request.name(), request.description(), request.price(), request.stockQuantity()
         );
