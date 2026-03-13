@@ -16,13 +16,13 @@
 
 ---
 
-## Phase 2 — Seller & Product Ownership
+## Phase 2 — Seller & Product Ownership ✅
 
 **Goal:** Introduce seller concept and connect products to sellers.
 
-- [ ] Seller Entity
-- [ ] 판매자 등록
-- [ ] Product ↔ Seller relationship
+- [x] Seller Entity
+- [x] 판매자 등록 (등록·조회·승인·정지 API)
+- [x] 상품 등록 시 승인된 판매자 검증
 
 ---
 
