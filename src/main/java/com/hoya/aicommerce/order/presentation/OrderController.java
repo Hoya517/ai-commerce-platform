@@ -45,6 +45,12 @@ public class OrderController {
         return ApiResponse.success(OrderResponse.from(orderService.getOrder(orderId)));
     }
 
+    @Operation(summary = "장바구니 기반 주문 생성")
+    @PostMapping("/from-cart")
+    public ApiResponse<OrderResponse> createOrderFromCart() {
+        return ApiResponse.success(OrderResponse.from(orderService.createOrderFromCart(authContext.getMemberId())));
+    }
+
     @Operation(summary = "주문 취소")
     @PostMapping("/{orderId}/cancel")
     public ApiResponse<Void> cancelOrder(@PathVariable Long orderId) {

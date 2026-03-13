@@ -1,5 +1,8 @@
 package com.hoya.aicommerce.order.application;
 
+import com.hoya.aicommerce.cart.domain.Cart;
+import com.hoya.aicommerce.cart.domain.CartRepository;
+import com.hoya.aicommerce.cart.exception.CartException;
 import com.hoya.aicommerce.catalog.domain.Product;
 import com.hoya.aicommerce.catalog.domain.ProductRepository;
 import com.hoya.aicommerce.catalog.exception.ProductException;
@@ -18,6 +21,7 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
+    private final CartRepository cartRepository;
 
     @Transactional
     public OrderResult createOrder(CreateOrderCommand command) {
@@ -38,6 +42,34 @@ public class OrderService {
         return OrderResult.from(orderRepository.save(order));
     }
 
+    @Transactional
+    public OrderResult createOrderFromCart(Long memberId) {
+        Cart cart = cartRepository.findByMemberId(memberId)
+                .orElseThrow(() -> new CartException("Cart not found"));
+
+        if (cart.getItems().isEmpty()) {
+            throw new CartException("Cart is empty");
+        }
+
+        Order order = Order.create(memberId);
+
+        cart.getItems().forEach(cartItem -> {
+            Product product = productRepository.findById(cartItem.getProductId())
+                    .orElseThrow(() -> new ProductException("Product not found"));
+
+            if (!product.isOnSale()) {
+                throw new ProductException("Product is not on sale: " + product.getId());
+            }
+
+            product.decreaseStock(cartItem.getQuantity());
+            order.addItem(product.getId(), product.getName(), product.getPrice(), cartItem.getQuantity());
+        });
+
+        OrderResult result = OrderResult.from(orderRepository.save(order));
+        cart.clear();
+        return result;
+    }
+
     @Transactional(readOnly = true)
     public OrderResult getOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
@@ -50,5 +82,9 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new OrderException("Order not found"));
         order.cancel();
+        order.getItems().forEach(item ->
+                productRepository.findById(item.getProductId())
+                        .ifPresent(product -> product.increaseStock(item.getQuantity()))
+        );
     }
 }

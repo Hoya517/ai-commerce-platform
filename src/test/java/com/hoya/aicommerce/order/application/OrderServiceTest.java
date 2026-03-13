@@ -1,5 +1,8 @@
 package com.hoya.aicommerce.order.application;
 
+import com.hoya.aicommerce.cart.domain.Cart;
+import com.hoya.aicommerce.cart.domain.CartRepository;
+import com.hoya.aicommerce.cart.exception.CartException;
 import com.hoya.aicommerce.catalog.domain.Product;
 import com.hoya.aicommerce.catalog.domain.ProductRepository;
 import com.hoya.aicommerce.catalog.domain.ProductStatus;
@@ -35,6 +38,9 @@ class OrderServiceTest {
 
     @Mock
     private ProductRepository productRepository;
+
+    @Mock
+    private CartRepository cartRepository;
 
     @InjectMocks
     private OrderService orderService;
@@ -90,6 +96,42 @@ class OrderServiceTest {
     }
 
     @Test
+    void 장바구니_기반_주문이_생성되고_장바구니가_비워진다() {
+        Cart cart = Cart.create(1L);
+        Product product = Product.create("상품A", "설명", Money.of(1000L), 10, 1L);
+        cart.addItem(10L, "상품A", Money.of(1000L), 2, 10, true);
+
+        given(cartRepository.findByMemberId(1L)).willReturn(Optional.of(cart));
+        given(productRepository.findById(10L)).willReturn(Optional.of(product));
+        given(orderRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+        OrderResult result = orderService.createOrderFromCart(1L);
+
+        assertThat(result.memberId()).isEqualTo(1L);
+        assertThat(result.status()).isEqualTo(OrderStatus.CREATED);
+        assertThat(result.items()).hasSize(1);
+        assertThat(product.getStockQuantity()).isEqualTo(8);
+        assertThat(cart.getItems()).isEmpty();
+    }
+
+    @Test
+    void 장바구니가_없으면_from_cart_주문_실패() {
+        given(cartRepository.findByMemberId(1L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orderService.createOrderFromCart(1L))
+                .isInstanceOf(CartException.class);
+    }
+
+    @Test
+    void 장바구니가_비어있으면_from_cart_주문_실패() {
+        Cart cart = Cart.create(1L);
+        given(cartRepository.findByMemberId(1L)).willReturn(Optional.of(cart));
+
+        assertThatThrownBy(() -> orderService.createOrderFromCart(1L))
+                .isInstanceOf(CartException.class);
+    }
+
+    @Test
     void 주문을_조회한다() {
         Order order = Order.create(1L);
         order.addItem(10L, "상품A", Money.of(1000L), 2);
@@ -117,6 +159,22 @@ class OrderServiceTest {
         orderService.cancelOrder(1L);
 
         assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
+    }
+
+    @Test
+    void 주문_취소_시_재고가_복구된다() {
+        Product product = Product.create("상품A", "설명", Money.of(1000L), 10, 1L);
+        product.decreaseStock(2);
+        Order order = Order.create(1L);
+        order.addItem(10L, "상품A", Money.of(1000L), 2);
+
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+        given(productRepository.findById(10L)).willReturn(Optional.of(product));
+
+        orderService.cancelOrder(1L);
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
+        assertThat(product.getStockQuantity()).isEqualTo(10);
     }
 
     @Test

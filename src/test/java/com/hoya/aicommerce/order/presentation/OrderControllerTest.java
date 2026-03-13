@@ -21,7 +21,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 import java.util.List;
 
+import com.hoya.aicommerce.cart.exception.CartException;
+
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.BDDMockito.willThrow;
@@ -99,6 +102,28 @@ class OrderControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void 장바구니_기반_주문_생성_성공() throws Exception {
+        given(orderService.createOrderFromCart(1L)).willReturn(sampleOrderResult());
+
+        mockMvc.perform(post("/orders/from-cart")
+                        .header("Authorization", "Bearer test-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.status").value("CREATED"));
+    }
+
+    @Test
+    void 장바구니가_비어있으면_from_cart_주문_실패() throws Exception {
+        given(orderService.createOrderFromCart(1L)).willThrow(new CartException("Cart is empty"));
+
+        mockMvc.perform(post("/orders/from-cart")
+                        .header("Authorization", "Bearer test-token"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Cart is empty"));
     }
 
     @Test

@@ -66,6 +66,13 @@ public class Product {
         }
     }
 
+    public void increaseStock(int quantity) {
+        this.stockQuantity += quantity;
+        if (this.status == ProductStatus.OUT_OF_STOCK) {
+            this.status = ProductStatus.ON_SALE;
+        }
+    }
+
     public boolean isOnSale() {
         return this.status == ProductStatus.ON_SALE;
     }

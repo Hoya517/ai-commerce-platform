@@ -79,6 +79,10 @@ public class Cart {
         items.removeIf(item -> item.getProductId().equals(productId));
     }
 
+    public void clear() {
+        items.clear();
+    }
+
     private CartItem findItem(Long productId) {
         return items.stream()
                 .filter(item -> item.getProductId().equals(productId))

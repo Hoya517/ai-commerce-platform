@@ -38,13 +38,13 @@
 
 ---
 
-## Phase 4 — Order Flow Improvements
+## Phase 4 — Order Flow Improvements ✅ (partial)
 
 **Goal:** Improve order lifecycle and cart integration.
 
-- [ ] Cart → Order conversion
+- [x] Cart → Order conversion (POST /orders/from-cart, clears cart after order)
 - [ ] Order history API
-- [ ] Cancel order with stock restoration
+- [x] Cancel order with stock restoration
 
 ---
 
