@@ -29,6 +29,13 @@ public class WalletService {
     }
 
     @Transactional
+    public void deduct(Long memberId, Money amount) {
+        Wallet wallet = walletRepository.findByMemberId(memberId)
+                .orElseThrow(() -> new WalletException("지갑을 찾을 수 없습니다"));
+        wallet.deduct(amount);
+    }
+
+    @Transactional
     public WalletResult charge(Long memberId, ChargeWalletCommand command) {
         Wallet wallet = walletRepository.findByMemberId(memberId)
                 .orElseThrow(() -> new WalletException("지갑을 찾을 수 없습니다"));

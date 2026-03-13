@@ -12,6 +12,8 @@ import com.hoya.aicommerce.payment.exception.PaymentException;
 import com.hoya.aicommerce.payment.presentation.request.ConfirmPaymentRequest;
 import com.hoya.aicommerce.payment.presentation.request.FailPaymentRequest;
 import com.hoya.aicommerce.payment.presentation.request.RequestPaymentRequest;
+import com.hoya.aicommerce.payment.presentation.request.WalletPaymentRequest;
+import com.hoya.aicommerce.wallet.exception.WalletException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -53,6 +55,10 @@ class PaymentControllerTest {
 
     private PaymentResult approvedPaymentResult() {
         return new PaymentResult(1L, 1L, BigDecimal.valueOf(2000), PaymentMethod.CARD, PaymentStatus.APPROVED, "pay-key-abc", LocalDateTime.now());
+    }
+
+    private PaymentResult walletApprovedResult() {
+        return new PaymentResult(1L, 1L, BigDecimal.valueOf(5000), PaymentMethod.WALLET, PaymentStatus.APPROVED, null, LocalDateTime.now());
     }
 
     @Test
@@ -144,5 +150,36 @@ class PaymentControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void 예치금_결제_성공() throws Exception {
+        given(authContext.getMemberId()).willReturn(1L);
+        given(paymentService.payWithWallet(any())).willReturn(walletApprovedResult());
+
+        WalletPaymentRequest request = new WalletPaymentRequest(1L);
+
+        mockMvc.perform(post("/payments/wallet")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.method").value("WALLET"))
+                .andExpect(jsonPath("$.data.status").value("APPROVED"));
+    }
+
+    @Test
+    void 잔액_부족_시_예치금_결제_실패() throws Exception {
+        given(authContext.getMemberId()).willReturn(1L);
+        given(paymentService.payWithWallet(any())).willThrow(new WalletException("잔액이 부족합니다"));
+
+        WalletPaymentRequest request = new WalletPaymentRequest(1L);
+
+        mockMvc.perform(post("/payments/wallet")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("잔액이 부족합니다"));
     }
 }

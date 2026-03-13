@@ -7,6 +7,7 @@ import com.hoya.aicommerce.order.domain.OrderStatus;
 import com.hoya.aicommerce.order.exception.OrderException;
 import com.hoya.aicommerce.payment.application.dto.ConfirmPaymentCommand;
 import com.hoya.aicommerce.payment.application.dto.FailPaymentCommand;
+import com.hoya.aicommerce.payment.application.dto.PayWithWalletCommand;
 import com.hoya.aicommerce.payment.application.dto.PaymentResult;
 import com.hoya.aicommerce.payment.application.dto.RequestPaymentCommand;
 import com.hoya.aicommerce.payment.domain.Payment;
@@ -14,6 +15,8 @@ import com.hoya.aicommerce.payment.domain.PaymentMethod;
 import com.hoya.aicommerce.payment.domain.PaymentRepository;
 import com.hoya.aicommerce.payment.domain.PaymentStatus;
 import com.hoya.aicommerce.payment.exception.PaymentException;
+import com.hoya.aicommerce.wallet.application.WalletService;
+import com.hoya.aicommerce.wallet.exception.WalletException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -28,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 
 @ExtendWith(MockitoExtension.class)
 class PaymentServiceTest {
@@ -37,6 +41,9 @@ class PaymentServiceTest {
 
     @Mock
     private OrderRepository orderRepository;
+
+    @Mock
+    private WalletService walletService;
 
     @InjectMocks
     private PaymentService paymentService;
@@ -114,5 +121,35 @@ class PaymentServiceTest {
         assertThatThrownBy(() -> paymentService.failPayment(
                 new FailPaymentCommand(99L, "ERR", "오류")))
                 .isInstanceOf(PaymentException.class);
+    }
+
+    @Test
+    void 예치금으로_결제가_완료된다() {
+        Order order = Order.create(1L);
+        ReflectionTestUtils.setField(order, "id", 1L);
+        order.addItem(10L, "상품A", Money.of(5000L), 1);
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+        given(paymentRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+        PaymentResult result = paymentService.payWithWallet(new PayWithWalletCommand(1L, 1L));
+
+        assertThat(result.method()).isEqualTo(PaymentMethod.WALLET);
+        assertThat(result.status()).isEqualTo(PaymentStatus.APPROVED);
+        assertThat(result.approvedAt()).isNotNull();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
+    }
+
+    @Test
+    void 잔액_부족_시_예치금_결제가_실패한다() {
+        Order order = Order.create(1L);
+        ReflectionTestUtils.setField(order, "id", 1L);
+        order.addItem(10L, "상품A", Money.of(100000L), 1);
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+        willThrow(new WalletException("잔액이 부족합니다"))
+                .given(walletService).deduct(any(), any());
+
+        assertThatThrownBy(() -> paymentService.payWithWallet(new PayWithWalletCommand(1L, 1L)))
+                .isInstanceOf(WalletException.class)
+                .hasMessage("잔액이 부족합니다");
     }
 }

@@ -5,11 +5,14 @@ import com.hoya.aicommerce.order.domain.OrderRepository;
 import com.hoya.aicommerce.order.exception.OrderException;
 import com.hoya.aicommerce.payment.application.dto.ConfirmPaymentCommand;
 import com.hoya.aicommerce.payment.application.dto.FailPaymentCommand;
+import com.hoya.aicommerce.payment.application.dto.PayWithWalletCommand;
 import com.hoya.aicommerce.payment.application.dto.PaymentResult;
 import com.hoya.aicommerce.payment.application.dto.RequestPaymentCommand;
 import com.hoya.aicommerce.payment.domain.Payment;
+import com.hoya.aicommerce.payment.domain.PaymentMethod;
 import com.hoya.aicommerce.payment.domain.PaymentRepository;
 import com.hoya.aicommerce.payment.exception.PaymentException;
+import com.hoya.aicommerce.wallet.application.WalletService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +23,7 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
+    private final WalletService walletService;
 
     @Transactional
     public PaymentResult requestPayment(RequestPaymentCommand command) {
@@ -45,6 +49,21 @@ public class PaymentService {
         order.markPaid();
 
         return PaymentResult.from(payment);
+    }
+
+    @Transactional
+    public PaymentResult payWithWallet(PayWithWalletCommand command) {
+        Order order = orderRepository.findById(command.orderId())
+                .orElseThrow(() -> new OrderException("Order not found"));
+
+        order.startPayment();
+        walletService.deduct(command.memberId(), order.getTotalAmount());
+
+        Payment payment = Payment.create(order.getId(), order.getTotalAmount(), PaymentMethod.WALLET);
+        payment.approve();
+        order.markPaid();
+
+        return PaymentResult.from(paymentRepository.save(payment));
     }
 
     @Transactional

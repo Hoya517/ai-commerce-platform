@@ -1,13 +1,16 @@
 package com.hoya.aicommerce.payment.presentation;
 
+import com.hoya.aicommerce.common.auth.AuthContext;
 import com.hoya.aicommerce.payment.application.PaymentService;
 import com.hoya.aicommerce.payment.application.dto.ConfirmPaymentCommand;
 import com.hoya.aicommerce.payment.application.dto.FailPaymentCommand;
+import com.hoya.aicommerce.payment.application.dto.PayWithWalletCommand;
 import com.hoya.aicommerce.payment.application.dto.RequestPaymentCommand;
 import com.hoya.aicommerce.common.presentation.ApiResponse;
 import com.hoya.aicommerce.payment.presentation.request.ConfirmPaymentRequest;
 import com.hoya.aicommerce.payment.presentation.request.FailPaymentRequest;
 import com.hoya.aicommerce.payment.presentation.request.RequestPaymentRequest;
+import com.hoya.aicommerce.payment.presentation.request.WalletPaymentRequest;
 import com.hoya.aicommerce.payment.presentation.response.PaymentResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final AuthContext authContext;
 
     @Operation(summary = "결제 요청")
     @PostMapping
@@ -38,6 +42,14 @@ public class PaymentController {
     public ApiResponse<PaymentResponse> confirmPayment(@Valid @RequestBody ConfirmPaymentRequest request) {
         ConfirmPaymentCommand command = new ConfirmPaymentCommand(request.paymentId(), request.paymentKey());
         return ApiResponse.success(PaymentResponse.from(paymentService.confirmPayment(command)));
+    }
+
+    @Operation(summary = "예치금 결제")
+    @PostMapping("/wallet")
+    public ApiResponse<PaymentResponse> payWithWallet(@Valid @RequestBody WalletPaymentRequest request) {
+        Long memberId = authContext.getMemberId();
+        PayWithWalletCommand command = new PayWithWalletCommand(request.orderId(), memberId);
+        return ApiResponse.success(PaymentResponse.from(paymentService.payWithWallet(command)));
     }
 
     @Operation(summary = "결제 실패")

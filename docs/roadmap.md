@@ -34,7 +34,8 @@
 - [x] Wallet Entity
 - [x] Auto-create wallet on member registration
 - [x] Balance charge API
-- [x] Balance deduction domain method (API deferred to payment integration)
+- [x] Balance deduction domain method
+- [x] Wallet payment API (POST /payments/wallet, ISSUE-09)
 
 ---
 
