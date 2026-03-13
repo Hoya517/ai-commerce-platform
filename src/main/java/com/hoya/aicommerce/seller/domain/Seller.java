@@ -1,6 +1,8 @@
 package com.hoya.aicommerce.seller.domain;
 
+import com.hoya.aicommerce.common.config.EncryptionConverter;
 import com.hoya.aicommerce.seller.exception.SellerException;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -22,6 +24,7 @@ public class Seller {
 
     private Long memberId;
     private String businessName;
+    @Convert(converter = EncryptionConverter.class)
     private String settlementAccount;
 
     @Enumerated(EnumType.STRING)

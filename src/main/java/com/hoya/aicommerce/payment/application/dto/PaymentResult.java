@@ -13,7 +13,6 @@ public record PaymentResult(
         BigDecimal amount,
         PaymentMethod method,
         PaymentStatus status,
-        String paymentKey,
         LocalDateTime approvedAt
 ) {
     public static PaymentResult from(Payment payment) {
@@ -23,7 +22,6 @@ public record PaymentResult(
                 payment.getAmount().getValue(),
                 payment.getMethod(),
                 payment.getStatus(),
-                payment.getPaymentKey(),
                 payment.getApprovedAt()
         );
     }

@@ -51,19 +51,19 @@ class PaymentControllerTest {
     private AuthContext authContext;
 
     private PaymentResult readyPaymentResult() {
-        return new PaymentResult(1L, 1L, BigDecimal.valueOf(2000), PaymentMethod.CARD, PaymentStatus.READY, null, null);
+        return new PaymentResult(1L, 1L, BigDecimal.valueOf(2000), PaymentMethod.CARD, PaymentStatus.READY, null);
     }
 
     private PaymentResult approvedPaymentResult() {
-        return new PaymentResult(1L, 1L, BigDecimal.valueOf(2000), PaymentMethod.CARD, PaymentStatus.APPROVED, "pay-key-abc", LocalDateTime.now());
+        return new PaymentResult(1L, 1L, BigDecimal.valueOf(2000), PaymentMethod.CARD, PaymentStatus.APPROVED, LocalDateTime.now());
     }
 
     private PaymentResult walletApprovedResult() {
-        return new PaymentResult(1L, 1L, BigDecimal.valueOf(5000), PaymentMethod.WALLET, PaymentStatus.APPROVED, null, LocalDateTime.now());
+        return new PaymentResult(1L, 1L, BigDecimal.valueOf(5000), PaymentMethod.WALLET, PaymentStatus.APPROVED, LocalDateTime.now());
     }
 
     private PaymentResult canceledPaymentResult() {
-        return new PaymentResult(1L, 1L, BigDecimal.valueOf(2000), PaymentMethod.CARD, PaymentStatus.CANCELED, "pay-key-abc", LocalDateTime.now());
+        return new PaymentResult(1L, 1L, BigDecimal.valueOf(2000), PaymentMethod.CARD, PaymentStatus.CANCELED, LocalDateTime.now());
     }
 
     @Test
@@ -115,8 +115,7 @@ class PaymentControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.status").value("APPROVED"))
-                .andExpect(jsonPath("$.data.paymentKey").value("pay-key-abc"));
+                .andExpect(jsonPath("$.data.status").value("APPROVED"));
     }
 
     @Test

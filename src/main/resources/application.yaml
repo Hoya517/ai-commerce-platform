@@ -26,5 +26,8 @@ server:
   port: 9090
 
 jwt:
-  secret: ai-commerce-platform-secret-key-for-jwt-authentication-hs256
+  secret: ${JWT_SECRET:ai-commerce-platform-secret-key-for-jwt-authentication-hs256}
   expiration-ms: 86400000
+
+encryption:
+  secret: ${ENCRYPTION_SECRET:ai-commerce-encrypt-key-for-dev!}

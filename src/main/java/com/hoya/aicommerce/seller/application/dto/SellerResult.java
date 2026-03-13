@@ -15,8 +15,13 @@ public record SellerResult(
                 seller.getId(),
                 seller.getMemberId(),
                 seller.getBusinessName(),
-                seller.getSettlementAccount(),
+                maskAccount(seller.getSettlementAccount()),
                 seller.getStatus()
         );
+    }
+
+    private static String maskAccount(String account) {
+        if (account == null || account.length() < 7) return "***";
+        return account.substring(0, 3) + "-***-***" + account.substring(account.length() - 3);
     }
 }

@@ -97,7 +97,6 @@ class PaymentServiceTest {
                 new ConfirmPaymentCommand(1L, "pay-key-abc"));
 
         assertThat(result.status()).isEqualTo(PaymentStatus.APPROVED);
-        assertThat(result.paymentKey()).isEqualTo("pay-key-abc");
         assertThat(result.approvedAt()).isNotNull();
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
     }
