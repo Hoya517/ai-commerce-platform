@@ -8,6 +8,7 @@ import com.hoya.aicommerce.catalog.domain.ProductRepository;
 import com.hoya.aicommerce.catalog.domain.ProductStatus;
 import com.hoya.aicommerce.catalog.exception.ProductException;
 import com.hoya.aicommerce.common.domain.Money;
+import com.hoya.aicommerce.common.event.OrderCreatedEvent;
 import com.hoya.aicommerce.order.application.dto.CreateOrderCommand;
 import com.hoya.aicommerce.order.application.dto.OrderItemCommand;
 import com.hoya.aicommerce.order.application.dto.OrderResult;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -29,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
@@ -41,6 +44,9 @@ class OrderServiceTest {
 
     @Mock
     private CartRepository cartRepository;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private OrderService orderService;
@@ -60,6 +66,31 @@ class OrderServiceTest {
         assertThat(result.totalAmount()).isEqualByComparingTo(BigDecimal.valueOf(2000));
         assertThat(result.items()).hasSize(1);
         assertThat(product.getStockQuantity()).isEqualTo(8);
+    }
+
+    @Test
+    void 주문_생성_시_OrderCreatedEvent가_발행된다() {
+        Product product = Product.create("상품A", "설명", Money.of(1000L), 10, 1L);
+        given(productRepository.findByIdWithLock(10L)).willReturn(Optional.of(product));
+        given(orderRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+        orderService.createOrder(new CreateOrderCommand(1L, List.of(new OrderItemCommand(10L, 1))));
+
+        verify(eventPublisher).publishEvent(any(OrderCreatedEvent.class));
+    }
+
+    @Test
+    void 장바구니_기반_주문_생성_시_OrderCreatedEvent가_발행된다() {
+        Cart cart = Cart.create(1L);
+        Product product = Product.create("상품A", "설명", Money.of(1000L), 10, 1L);
+        cart.addItem(10L, "상품A", Money.of(1000L), 2, 10, true);
+        given(cartRepository.findByMemberId(1L)).willReturn(Optional.of(cart));
+        given(productRepository.findByIdWithLock(10L)).willReturn(Optional.of(product));
+        given(orderRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+        orderService.createOrderFromCart(1L);
+
+        verify(eventPublisher).publishEvent(any(OrderCreatedEvent.class));
     }
 
     @Test

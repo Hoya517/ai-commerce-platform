@@ -18,12 +18,15 @@ import com.hoya.aicommerce.payment.domain.PaymentMethod;
 import com.hoya.aicommerce.payment.domain.PaymentRepository;
 import com.hoya.aicommerce.payment.domain.PaymentStatus;
 import com.hoya.aicommerce.payment.exception.PaymentException;
+import com.hoya.aicommerce.common.event.PaymentCanceledEvent;
+import com.hoya.aicommerce.common.event.PaymentConfirmedEvent;
 import com.hoya.aicommerce.payment.infrastructure.pg.PgGateway;
 import com.hoya.aicommerce.payment.infrastructure.pg.dto.PgCancelResponse;
 import com.hoya.aicommerce.payment.infrastructure.pg.dto.PgConfirmResponse;
 import com.hoya.aicommerce.payment.infrastructure.pg.dto.PgPrepareResponse;
 import com.hoya.aicommerce.wallet.application.WalletService;
 import com.hoya.aicommerce.wallet.exception.WalletException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -60,6 +63,9 @@ class PaymentServiceTest {
 
     @Mock
     private PgGateway pgGateway;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private PaymentService paymentService;
@@ -108,6 +114,50 @@ class PaymentServiceTest {
         assertThat(result.status()).isEqualTo(PaymentStatus.APPROVED);
         assertThat(result.approvedAt()).isNotNull();
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
+    }
+
+    @Test
+    void 결제_승인_시_PaymentConfirmedEvent가_발행된다() {
+        Payment payment = Payment.create(1L, Money.of(2000L), PaymentMethod.CARD);
+        payment.request("mock-pg-key-abc");
+        Order order = Order.create(1L);
+        ReflectionTestUtils.setField(order, "id", 1L);
+        order.addItem(10L, "상품A", Money.of(2000L), 1);
+        order.startPayment();
+
+        given(paymentRepository.findById(1L)).willReturn(Optional.of(payment));
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+        given(pgGateway.confirm(any(), any())).willReturn(new PgConfirmResponse(true, null, null));
+
+        paymentService.confirmPayment(new ConfirmPaymentCommand(1L));
+
+        verify(eventPublisher).publishEvent(any(PaymentConfirmedEvent.class));
+    }
+
+    @Test
+    void 결제_취소_시_PaymentCanceledEvent가_발행된다() {
+        Product product = Product.create("상품A", "설명", Money.of(2000L), 10, 1L);
+        ReflectionTestUtils.setField(product, "id", 10L);
+
+        Order order = Order.create(1L);
+        ReflectionTestUtils.setField(order, "id", 1L);
+        order.addItem(10L, "상품A", Money.of(2000L), 1);
+        order.startPayment();
+        order.markPaid();
+
+        Payment payment = Payment.create(1L, Money.of(2000L), PaymentMethod.CARD);
+        ReflectionTestUtils.setField(payment, "id", 1L);
+        payment.request("mock-key");
+        payment.approve();
+
+        given(paymentRepository.findById(1L)).willReturn(Optional.of(payment));
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+        given(productRepository.findByIdWithLock(10L)).willReturn(Optional.of(product));
+        given(pgGateway.cancel(any(), any())).willReturn(new PgCancelResponse(true, null, null));
+
+        paymentService.cancelPayment(1L, 1L);
+
+        verify(eventPublisher).publishEvent(any(PaymentCanceledEvent.class));
     }
 
     @Test

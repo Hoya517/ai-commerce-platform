@@ -6,12 +6,14 @@ import com.hoya.aicommerce.cart.exception.CartException;
 import com.hoya.aicommerce.catalog.domain.Product;
 import com.hoya.aicommerce.catalog.domain.ProductRepository;
 import com.hoya.aicommerce.catalog.exception.ProductException;
+import com.hoya.aicommerce.common.event.OrderCreatedEvent;
 import com.hoya.aicommerce.order.application.dto.CreateOrderCommand;
 import com.hoya.aicommerce.order.application.dto.OrderResult;
 import com.hoya.aicommerce.order.domain.Order;
 import com.hoya.aicommerce.order.domain.OrderRepository;
 import com.hoya.aicommerce.order.exception.OrderException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +24,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final CartRepository cartRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public OrderResult createOrder(CreateOrderCommand command) {
@@ -39,7 +42,9 @@ public class OrderService {
             order.addItem(product.getId(), product.getName(), product.getPrice(), itemCmd.quantity());
         });
 
-        return OrderResult.from(orderRepository.save(order));
+        OrderResult result = OrderResult.from(orderRepository.save(order));
+        eventPublisher.publishEvent(OrderCreatedEvent.of(result.orderId(), result.memberId(), result.totalAmount()));
+        return result;
     }
 
     @Transactional
@@ -67,6 +72,7 @@ public class OrderService {
 
         OrderResult result = OrderResult.from(orderRepository.save(order));
         cart.clear();
+        eventPublisher.publishEvent(OrderCreatedEvent.of(result.orderId(), result.memberId(), result.totalAmount()));
         return result;
     }
 

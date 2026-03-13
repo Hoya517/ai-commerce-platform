@@ -13,6 +13,8 @@ import com.hoya.aicommerce.payment.domain.Payment;
 import com.hoya.aicommerce.payment.domain.PaymentMethod;
 import com.hoya.aicommerce.payment.domain.PaymentRepository;
 import com.hoya.aicommerce.payment.exception.PaymentException;
+import com.hoya.aicommerce.common.event.PaymentCanceledEvent;
+import com.hoya.aicommerce.common.event.PaymentConfirmedEvent;
 import com.hoya.aicommerce.payment.infrastructure.pg.PgGateway;
 import com.hoya.aicommerce.payment.infrastructure.pg.dto.PgCancelResponse;
 import com.hoya.aicommerce.payment.infrastructure.pg.dto.PgConfirmResponse;
@@ -20,6 +22,7 @@ import com.hoya.aicommerce.payment.infrastructure.pg.dto.PgPrepareResponse;
 import com.hoya.aicommerce.wallet.application.WalletService;
 import com.hoya.aicommerce.wallet.application.dto.ChargeWalletCommand;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +35,7 @@ public class PaymentService {
     private final ProductRepository productRepository;
     private final WalletService walletService;
     private final PgGateway pgGateway;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public PaymentResult requestPayment(RequestPaymentCommand command) {
@@ -67,6 +71,9 @@ public class PaymentService {
 
         payment.approve();
         order.markPaid();
+        eventPublisher.publishEvent(PaymentConfirmedEvent.of(
+                payment.getId(), order.getId(), order.getMemberId(),
+                payment.getAmount().getValue(), payment.getMethod()));
 
         return PaymentResult.from(payment);
     }
@@ -84,7 +91,11 @@ public class PaymentService {
         payment.approve();
         order.markPaid();
 
-        return PaymentResult.from(paymentRepository.save(payment));
+        PaymentResult result = PaymentResult.from(paymentRepository.save(payment));
+        eventPublisher.publishEvent(PaymentConfirmedEvent.of(
+                result.paymentId(), order.getId(), command.memberId(),
+                result.amount(), result.method()));
+        return result;
     }
 
     @Transactional
@@ -119,6 +130,9 @@ public class PaymentService {
             walletService.charge(memberId, new ChargeWalletCommand(payment.getAmount().getValue()));
         }
 
+        eventPublisher.publishEvent(PaymentCanceledEvent.of(
+                payment.getId(), order.getId(), memberId,
+                payment.getAmount().getValue(), payment.getMethod()));
         return PaymentResult.from(payment);
     }
 
