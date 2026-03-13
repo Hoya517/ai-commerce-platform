@@ -64,7 +64,8 @@
 - [x] OrderCreatedEvent (ISSUE-14)
 - [x] PaymentConfirmedEvent (ISSUE-14)
 - [x] PaymentCanceledEvent (ISSUE-14)
-- [ ] Event Listener 구현
+- [x] Event Listener 구현 — SettlementEventListener (@TransactionalEventListener + @Async) (ISSUE-15)
+- [x] 이벤트 기반 정합성 전략 문서화 (ISSUE-16) → docs/architecture/event-driven.md
 
 ### CI/CD
 
