@@ -54,7 +54,7 @@
 
 ### Settlement
 
-- [ ] 정산 Entity
+- [x] 정산 Entity — Settlement (PENDING→COMPLETED), SettlementStatus, SettlementRepository (ISSUE-17)
 - [ ] 수수료 정책
 - [ ] 정산 배치
 - [ ] 판매자 정산 조회
