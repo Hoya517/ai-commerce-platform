@@ -88,4 +88,24 @@ class OrderTest {
         assertThatThrownBy(order::cancel)
                 .isInstanceOf(OrderException.class);
     }
+
+    @Test
+    void PAID_주문이_환불된다() {
+        Order order = Order.create(1L);
+        order.addItem(10L, "상품A", Money.of(1000L), 1);
+        order.startPayment();
+        order.markPaid();
+        order.refund();
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
+    }
+
+    @Test
+    void 미결제_주문은_환불할_수_없다() {
+        Order order = Order.create(1L);
+        order.addItem(10L, "상품A", Money.of(1000L), 1);
+
+        assertThatThrownBy(order::refund)
+                .isInstanceOf(OrderException.class);
+    }
 }

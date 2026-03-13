@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -50,6 +51,13 @@ public class PaymentController {
         Long memberId = authContext.getMemberId();
         PayWithWalletCommand command = new PayWithWalletCommand(request.orderId(), memberId);
         return ApiResponse.success(PaymentResponse.from(paymentService.payWithWallet(command)));
+    }
+
+    @Operation(summary = "결제 취소/환불")
+    @PostMapping("/{paymentId}/cancel")
+    public ApiResponse<PaymentResponse> cancelPayment(@PathVariable Long paymentId) {
+        Long memberId = authContext.getMemberId();
+        return ApiResponse.success(PaymentResponse.from(paymentService.cancelPayment(paymentId, memberId)));
     }
 
     @Operation(summary = "결제 실패")

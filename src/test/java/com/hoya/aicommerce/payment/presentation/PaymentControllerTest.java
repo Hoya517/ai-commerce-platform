@@ -28,6 +28,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -59,6 +60,10 @@ class PaymentControllerTest {
 
     private PaymentResult walletApprovedResult() {
         return new PaymentResult(1L, 1L, BigDecimal.valueOf(5000), PaymentMethod.WALLET, PaymentStatus.APPROVED, null, LocalDateTime.now());
+    }
+
+    private PaymentResult canceledPaymentResult() {
+        return new PaymentResult(1L, 1L, BigDecimal.valueOf(2000), PaymentMethod.CARD, PaymentStatus.CANCELED, "pay-key-abc", LocalDateTime.now());
     }
 
     @Test
@@ -166,6 +171,28 @@ class PaymentControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.method").value("WALLET"))
                 .andExpect(jsonPath("$.data.status").value("APPROVED"));
+    }
+
+    @Test
+    void 결제_취소_성공() throws Exception {
+        given(jwtProvider.validateToken("test-token")).willReturn(true);
+        given(jwtProvider.getMemberId("test-token")).willReturn(1L);
+        given(authContext.getMemberId()).willReturn(1L);
+        given(paymentService.cancelPayment(eq(1L), eq(1L))).willReturn(canceledPaymentResult());
+
+        mockMvc.perform(post("/payments/1/cancel")
+                        .header("Authorization", "Bearer test-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.status").value("CANCELED"));
+    }
+
+    @Test
+    void 결제_취소_인증_없으면_401() throws Exception {
+        given(jwtProvider.validateToken(any())).willReturn(false);
+
+        mockMvc.perform(post("/payments/1/cancel"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

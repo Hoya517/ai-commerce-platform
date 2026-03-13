@@ -1,10 +1,13 @@
 package com.hoya.aicommerce.payment.application;
 
+import com.hoya.aicommerce.catalog.domain.Product;
+import com.hoya.aicommerce.catalog.domain.ProductRepository;
 import com.hoya.aicommerce.common.domain.Money;
 import com.hoya.aicommerce.order.domain.Order;
 import com.hoya.aicommerce.order.domain.OrderRepository;
 import com.hoya.aicommerce.order.domain.OrderStatus;
 import com.hoya.aicommerce.order.exception.OrderException;
+import com.hoya.aicommerce.catalog.domain.ProductStatus;
 import com.hoya.aicommerce.payment.application.dto.ConfirmPaymentCommand;
 import com.hoya.aicommerce.payment.application.dto.FailPaymentCommand;
 import com.hoya.aicommerce.payment.application.dto.PayWithWalletCommand;
@@ -30,8 +33,11 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class PaymentServiceTest {
@@ -41,6 +47,9 @@ class PaymentServiceTest {
 
     @Mock
     private OrderRepository orderRepository;
+
+    @Mock
+    private ProductRepository productRepository;
 
     @Mock
     private WalletService walletService;
@@ -137,6 +146,78 @@ class PaymentServiceTest {
         assertThat(result.status()).isEqualTo(PaymentStatus.APPROVED);
         assertThat(result.approvedAt()).isNotNull();
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
+    }
+
+    @Test
+    void 결제_취소_성공_CARD결제() {
+        Product product = Product.create("상품A", "설명", Money.of(2000L), 10, 1L);
+        ReflectionTestUtils.setField(product, "id", 10L);
+
+        Order order = Order.create(1L);
+        ReflectionTestUtils.setField(order, "id", 1L);
+        order.addItem(10L, "상품A", Money.of(2000L), 1);
+        order.startPayment();
+        order.markPaid();
+
+        Payment payment = Payment.create(1L, Money.of(2000L), PaymentMethod.CARD);
+        ReflectionTestUtils.setField(payment, "id", 1L);
+        payment.approve();
+
+        given(paymentRepository.findById(1L)).willReturn(Optional.of(payment));
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+        given(productRepository.findById(10L)).willReturn(Optional.of(product));
+
+        PaymentResult result = paymentService.cancelPayment(1L, 1L);
+
+        assertThat(result.status()).isEqualTo(PaymentStatus.CANCELED);
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
+        verify(productRepository).findById(10L);
+        verify(walletService, never()).charge(any(), any());
+    }
+
+    @Test
+    void 결제_취소_성공_WALLET결제() {
+        Product product = Product.create("상품A", "설명", Money.of(5000L), 10, 1L);
+        ReflectionTestUtils.setField(product, "id", 10L);
+
+        Order order = Order.create(1L);
+        ReflectionTestUtils.setField(order, "id", 1L);
+        order.addItem(10L, "상품A", Money.of(5000L), 1);
+        order.startPayment();
+        order.markPaid();
+
+        Payment payment = Payment.create(1L, Money.of(5000L), PaymentMethod.WALLET);
+        ReflectionTestUtils.setField(payment, "id", 1L);
+        payment.approve();
+
+        given(paymentRepository.findById(1L)).willReturn(Optional.of(payment));
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+        given(productRepository.findById(10L)).willReturn(Optional.of(product));
+
+        PaymentResult result = paymentService.cancelPayment(1L, 1L);
+
+        assertThat(result.status()).isEqualTo(PaymentStatus.CANCELED);
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
+        verify(walletService).charge(eq(1L), any());
+    }
+
+    @Test
+    void 다른_회원의_결제는_취소할_수_없다() {
+        Order order = Order.create(1L);
+        ReflectionTestUtils.setField(order, "id", 1L);
+        order.addItem(10L, "상품A", Money.of(2000L), 1);
+        order.startPayment();
+        order.markPaid();
+
+        Payment payment = Payment.create(1L, Money.of(2000L), PaymentMethod.CARD);
+        ReflectionTestUtils.setField(payment, "id", 1L);
+        payment.approve();
+
+        given(paymentRepository.findById(1L)).willReturn(Optional.of(payment));
+        given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> paymentService.cancelPayment(1L, 99L))
+                .isInstanceOf(PaymentException.class);
     }
 
     @Test

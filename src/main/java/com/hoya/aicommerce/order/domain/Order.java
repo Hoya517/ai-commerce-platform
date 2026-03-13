@@ -82,6 +82,13 @@ public class Order {
         this.status = OrderStatus.CANCELED;
     }
 
+    public void refund() {
+        if (status != OrderStatus.PAID) {
+            throw new OrderException("Only paid orders can be refunded");
+        }
+        this.status = OrderStatus.CANCELED;
+    }
+
     private void recalculateTotalAmount() {
         this.totalAmount = items.stream()
                 .map(item -> item.getPrice().multiply(item.getQuantity()))

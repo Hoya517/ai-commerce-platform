@@ -46,6 +46,7 @@
 - [x] Cart → Order conversion (POST /orders/from-cart, clears cart after order)
 - [ ] Order history API
 - [x] Cancel order with stock restoration
+- [x] Payment cancel/refund API (POST /payments/{id}/cancel, ISSUE-10)
 
 ---
 

@@ -1,5 +1,6 @@
 package com.hoya.aicommerce.payment.application;
 
+import com.hoya.aicommerce.catalog.domain.ProductRepository;
 import com.hoya.aicommerce.order.domain.Order;
 import com.hoya.aicommerce.order.domain.OrderRepository;
 import com.hoya.aicommerce.order.exception.OrderException;
@@ -13,6 +14,7 @@ import com.hoya.aicommerce.payment.domain.PaymentMethod;
 import com.hoya.aicommerce.payment.domain.PaymentRepository;
 import com.hoya.aicommerce.payment.exception.PaymentException;
 import com.hoya.aicommerce.wallet.application.WalletService;
+import com.hoya.aicommerce.wallet.application.dto.ChargeWalletCommand;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,7 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
+    private final ProductRepository productRepository;
     private final WalletService walletService;
 
     @Transactional
@@ -64,6 +67,33 @@ public class PaymentService {
         order.markPaid();
 
         return PaymentResult.from(paymentRepository.save(payment));
+    }
+
+    @Transactional
+    public PaymentResult cancelPayment(Long paymentId, Long memberId) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new PaymentException("Payment not found"));
+
+        Order order = orderRepository.findById(payment.getOrderId())
+                .orElseThrow(() -> new OrderException("Order not found"));
+
+        if (!order.getMemberId().equals(memberId)) {
+            throw new PaymentException("Unauthorized to cancel this payment");
+        }
+
+        payment.cancel();
+        order.refund();
+
+        order.getItems().forEach(item ->
+                productRepository.findById(item.getProductId())
+                        .ifPresent(product -> product.increaseStock(item.getQuantity()))
+        );
+
+        if (payment.getMethod() == PaymentMethod.WALLET) {
+            walletService.charge(memberId, new ChargeWalletCommand(payment.getAmount().getValue()));
+        }
+
+        return PaymentResult.from(payment);
     }
 
     @Transactional

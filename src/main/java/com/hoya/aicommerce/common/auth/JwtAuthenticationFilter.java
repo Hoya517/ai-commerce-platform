@@ -52,7 +52,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return path.startsWith("/cart") ||
                 (path.equals("/orders") && "POST".equalsIgnoreCase(method)) ||
                 (path.equals("/sellers") && "POST".equalsIgnoreCase(method)) ||
-                (path.equals("/products") && "POST".equalsIgnoreCase(method));
+                (path.equals("/products") && "POST".equalsIgnoreCase(method)) ||
+                (path.matches("/payments/\\d+/cancel") && "POST".equalsIgnoreCase(method));
     }
 
     private void sendUnauthorized(HttpServletResponse response) throws IOException {
