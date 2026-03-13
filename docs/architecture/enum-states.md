@@ -1,6 +1,6 @@
 # Enum States Reference
 
-> 기준일: 2026-03-13
+> 기준일: 2026-03-13 (ISSUE-11 반영)
 > 프로젝트 전체 enum 상태값, 전이 규칙, 초기값을 한 곳에 정리한 레퍼런스 문서.
 
 ---
@@ -60,9 +60,11 @@ CANCELED                       CANCELED
 ```
 
 ### 규칙
-- `PAID` 상태인 주문은 취소 불가 (`OrderException`).
-- `CANCELED` 상태인 주문은 결제 시작 불가 (`OrderException`).
-- 주문 취소 시 각 OrderItem의 상품 재고를 복구(`increaseStock`).
+- `startPayment()`: CREATED에서만 호출 가능. PAYMENT_PENDING 중복 호출 불가.
+- `markPaid()`: PAYMENT_PENDING에서만 호출 가능. 다른 상태에서 호출 시 `OrderException`.
+- `cancel()`: PAID 상태에서 호출 불가 (`OrderException`). PAID 주문 취소는 `refund()` 사용.
+- `refund()`: PAID 상태에서만 호출 가능 (결제 취소/환불 전용).
+- 주문 취소/환불 시 각 OrderItem의 상품 재고를 복구(`increaseStock`).
 
 ---
 
@@ -92,15 +94,17 @@ READY ──────────→ REQUESTED ──────────
 ### 상태 전이 — 예치금 결제 (WALLET)
 
 ```
-          approve() 즉시
-READY ──────────────────→ APPROVED
+          request(null)       approve()
+READY ──────────────→ REQUESTED ──────────→ APPROVED
 ```
 
-> WALLET 결제는 외부 PG를 거치지 않아 `REQUESTED` 단계를 건너뛰고 즉시 `APPROVED`.
+> WALLET 결제도 동일한 상태 흐름을 따름. `paymentKey`는 `null`로 처리.
 
 ### 규칙
-- 이미 `APPROVED`인 결제에 `approve()` 재호출 시 `PaymentException`.
-- `cancel()`은 `APPROVED` 상태에서만 가능.
+- `request()`: READY 상태에서만 호출 가능.
+- `approve()`: REQUESTED 상태에서만 호출 가능.
+- `fail()`: READY 또는 REQUESTED 상태에서만 호출 가능. APPROVED/CANCELED 이후 불가.
+- `cancel()`: APPROVED 상태에서만 가능.
 - `approvedAt`은 `approve()` 호출 시각으로 자동 기록.
 
 ---
@@ -114,7 +118,7 @@ READY ──────────────────→ APPROVED
 | `CARD` | 신용/체크카드 | PG 3단계 (READY → REQUESTED → APPROVED) |
 | `EASY_PAY` | 간편결제 (카카오페이 등) | PG 3단계 |
 | `VIRTUAL_ACCOUNT` | 가상계좌 | PG 3단계 |
-| `WALLET` | 내부 예치금 | 즉시 결제 (READY → APPROVED) |
+| `WALLET` | 내부 예치금 | 동일 흐름 (READY → REQUESTED(null key) → APPROVED) |
 
 ---
 

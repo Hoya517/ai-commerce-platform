@@ -1,6 +1,6 @@
 # 주문-결제 흐름 시퀀스 문서
 
-> 현재 구현된 코드 기준으로 작성된 문서입니다.
+> 현재 구현된 코드 기준으로 작성된 문서입니다. (ISSUE-11 반영)
 
 이 문서는 현재 구현된 코드 기준으로 작성된 시스템 시퀀스 문서이며,
 실제 운영 환경에서는 일부 설계가 변경될 수 있다.
@@ -189,7 +189,7 @@ sequenceDiagram
     Note over PaymentService: PaymentStatus: READY → REQUESTED (2단계)
 
     PaymentService->>PaymentService: payment.approve()
-    Note over PaymentService: PaymentStatus: REQUESTED → APPROVED (3단계)<br/>approvedAt = now()
+    Note over PaymentService: PaymentStatus: REQUESTED → APPROVED (3단계)<br/>approvedAt = now()<br/>※ approve()는 REQUESTED 상태에서만 호출 가능
 
     PaymentService->>OrderRepository: findById(payment.orderId)
     OrderRepository-->>PaymentService: order
@@ -258,7 +258,7 @@ sequenceDiagram
     PaymentRepository-->>PaymentService: payment
 
     PaymentService->>PaymentService: payment.fail(failureCode, failureMessage)
-    Note over PaymentService: PaymentStatus: READY → FAILED<br/>Order 상태는 PAYMENT_PENDING으로 유지
+    Note over PaymentService: PaymentStatus: REQUESTED → FAILED<br/>Order 상태는 PAYMENT_PENDING으로 유지 (재시도 가능)
 
     PaymentService-->>PaymentController: 200 OK
     PaymentController-->>회원: 200 OK
@@ -323,53 +323,69 @@ CANCELED                  CANCELED
 ### PaymentStatus
 
 ```
-READY ──────────→ REQUESTED ──────────→ APPROVED
-                      │
-                      │ payment.fail()
-                      ↓
-                    FAILED
-
-APPROVED ──────────→ CANCELED (payment.cancel())
+READY ──request()──→ REQUESTED ──approve()──→ APPROVED ──cancel()──→ CANCELED
+  │                      │
+  │ fail()               │ fail()
+  ↓                      ↓
+FAILED               FAILED
 ```
 
 | 상태 | 설명 | 허용 전이 |
 |------|------|-----------|
-| `READY` | 결제 객체 생성 | `REQUESTED` |
+| `READY` | 결제 객체 생성 | `REQUESTED`, `FAILED` |
 | `REQUESTED` | 결제 키 발급 | `APPROVED`, `FAILED` |
 | `APPROVED` | 결제 승인 완료 | `CANCELED` |
 | `FAILED` | 결제 실패 | 전이 불가 |
 | `CANCELED` | 결제 취소 | 전이 불가 |
 
+> WALLET 결제도 동일 흐름: `request(null)` → `approve()` (paymentKey = null)
+
 ---
 
 ## 5. API 엔드포인트 요약
 
-| 단계 | Method | URL | 설명 |
-|------|--------|-----|------|
-| 상품 등록 | `POST` | `/products` | 상품 생성 |
-| 상품 조회 | `GET` | `/products/{id}` | 상품 단건 조회 |
-| 장바구니 조회 | `GET` | `/cart?memberId=` | 장바구니 조회 |
-| 장바구니 담기 | `POST` | `/cart/items` | 상품 추가 |
-| 수량 변경 | `PATCH` | `/cart/items/{productId}?memberId=` | 수량 변경 |
-| 장바구니 삭제 | `DELETE` | `/cart/items/{productId}?memberId=` | 항목 삭제 |
-| 주문 생성 | `POST` | `/orders` | 주문 생성 + 재고 차감 |
-| 주문 조회 | `GET` | `/orders/{id}` | 주문 단건 조회 |
-| 주문 취소 | `DELETE` | `/orders/{id}` | 주문 취소 |
-| 결제 요청 | `POST` | `/payments/request` | 결제 객체 생성 (READY) |
-| 결제 승인 | `POST` | `/payments/confirm` | 결제 승인 (REQUESTED → APPROVED) |
-| 결제 실패 | `POST` | `/payments/fail` | 결제 실패 처리 (FAILED) |
+> 🔒 = JWT 인증 필요 (`Authorization: Bearer {token}`)
+
+| 단계 | Method | URL | 설명 | 인증 |
+|------|--------|-----|------|------|
+| 상품 등록 | `POST` | `/products` | 상품 생성 (승인된 판매자) | 🔒 |
+| 상품 조회 | `GET` | `/products/{id}` | 상품 단건 조회 | - |
+| 상품 상태 변경 | `PATCH` | `/products/{id}/status` | 판매 상태 변경 | - |
+| 장바구니 조회 | `GET` | `/cart` | 내 장바구니 조회 | 🔒 |
+| 장바구니 담기 | `POST` | `/cart/items` | 상품 추가 (없으면 자동 생성) | 🔒 |
+| 수량 변경 | `PATCH` | `/cart/items/{productId}` | 수량 변경 | 🔒 |
+| 장바구니 삭제 | `DELETE` | `/cart/items/{productId}` | 항목 삭제 | 🔒 |
+| 주문 생성 | `POST` | `/orders` | 주문 생성 + 재고 차감 | 🔒 |
+| 장바구니 주문 | `POST` | `/orders/from-cart` | 장바구니 기반 주문 생성 | 🔒 |
+| 주문 조회 | `GET` | `/orders/{id}` | 주문 단건 조회 | - |
+| 주문 취소 | `POST` | `/orders/{id}/cancel` | 주문 취소 (재고 복구) | - |
+| 결제 요청 | `POST` | `/payments` | 결제 객체 생성 (READY) | - |
+| 결제 승인 | `POST` | `/payments/confirm` | 결제 승인 (REQUESTED → APPROVED) | - |
+| 결제 실패 | `POST` | `/payments/fail` | 결제 실패 처리 | - |
+| 예치금 결제 | `POST` | `/payments/wallet` | 예치금으로 즉시 결제 | 🔒 |
+| 결제 취소/환불 | `POST` | `/payments/{id}/cancel` | 결제 취소 + 재고 복구 + 예치금 환불 | 🔒 |
+| 회원 가입 | `POST` | `/members` | 회원 등록 (BCrypt) | - |
+| 로그인 | `POST` | `/members/login` | 로그인 → JWT 발급 | - |
+| 회원 조회 | `GET` | `/members/{id}` | 회원 단건 조회 | - |
+| 판매자 등록 | `POST` | `/sellers` | 판매자 신청 | 🔒 |
+| 판매자 조회 | `GET` | `/sellers/{id}` | 판매자 단건 조회 | - |
+| 판매자 승인 | `PATCH` | `/sellers/{id}/approve` | 판매자 승인 | - |
+| 지갑 조회 | `GET` | `/wallets/me` | 내 예치금 조회 | 🔒 |
+| 예치금 충전 | `POST` | `/wallets/charge` | 예치금 충전 | 🔒 |
 
 ---
 
 ## 6. 현재 구현의 한계 및 개선 포인트
 
-| 항목 | 현재 | 개선 방향 |
-|------|------|-----------|
-| 재고 차감 시점 | 주문 생성 시 즉시 차감 | 결제 완료 후 확정 고려 |
-| 결제 실패 시 주문 상태 | `PAYMENT_PENDING` 방치 | 자동 취소 또는 재시도 정책 필요 |
-| 장바구니 → 주문 연동 | 수동으로 items 지정 | Cart 기반 자동 주문 생성 필요 |
-| 인증/인가 | memberId를 파라미터로 전달 | JWT 기반 인증 도입 필요 |
-| PG 연동 | paymentKey를 직접 입력 | 외부 PG 또는 Mock PG 연동 필요 |
+| 항목 | 현재 | 상태 |
+|------|------|------|
+| 재고 차감 시점 | 주문 생성 시 즉시 차감 | 개선 검토 중 (ISSUE-12: Redis 선차감) |
+| 재고 동시성 | 비관적 락(`SELECT FOR UPDATE`) 적용 | ✅ 완료 (ISSUE-11 관련) |
+| 결제 실패 시 주문 상태 | `PAYMENT_PENDING` 유지 (재시도 가능) | 현행 유지 (만료 배치는 미구현) |
+| 장바구니 → 주문 연동 | `POST /orders/from-cart` 구현 | ✅ 완료 |
+| 인증/인가 | JWT 기반 인증 필터 적용 | ✅ 완료 |
+| PG 연동 | paymentKey를 직접 입력 (Mock) | 외부 PG 연동 미구현 |
+| 예치금 결제 | WALLET 결제 + 환불 구현 | ✅ 완료 |
 
 ### 재고 차감 전략
 
@@ -441,11 +457,13 @@ eventPublisher.publish(new PaymentConfirmedEvent(orderId, amount));
 Currently all responsibilities are implemented inside a single Spring Boot application.
 However, the domain boundaries allow future separation into independent services in a Microservice Architecture.
 
-| Service | Responsibility |
-|---------|----------------|
-| Catalog | Manage products and stock |
-| Cart | Manage user cart items |
-| Order | Create and manage order lifecycle |
-| Payment | Handle payment request, approval, failure |
-| Wallet (future) | Manage user balance and deductions |
-| Settlement (future) | Calculate seller payouts and commissions |
+| Service | Responsibility | 상태 |
+|---------|----------------|------|
+| Catalog | Manage products and stock | ✅ 구현 완료 |
+| Cart | Manage user cart items | ✅ 구현 완료 |
+| Order | Create and manage order lifecycle | ✅ 구현 완료 |
+| Payment | Handle payment request, approval, failure, cancel/refund | ✅ 구현 완료 |
+| Member | Member registration, login, JWT auth | ✅ 구현 완료 |
+| Seller | Seller registration and approval | ✅ 구현 완료 |
+| Wallet | Manage user balance, charge, deduction, refund | ✅ 구현 완료 |
+| Settlement | Calculate seller payouts and commissions | 미구현 |
