@@ -55,9 +55,10 @@
 ### Settlement
 
 - [x] 정산 Entity — Settlement (PENDING→COMPLETED), SettlementStatus, SettlementRepository (ISSUE-17)
-- [ ] 수수료 정책
+- [x] 수수료 정책 — FeePolicy (STANDARD_RATE 10%, calculateFee/Net) (ISSUE-18)
+- [x] 정산 대상 적재 — SettlementService.accumulate(), SettlementEventListener 연결 (ISSUE-19)
+- [x] 판매자 정산 조회 — GET /settlements/me, GET /settlements/{id} (ISSUE-21)
 - [ ] 정산 배치
-- [ ] 판매자 정산 조회
 
 ### Event Architecture
 
