@@ -85,4 +85,42 @@ class PaymentTest {
         assertThatThrownBy(payment::cancel)
                 .isInstanceOf(PaymentException.class);
     }
+
+    @Test
+    void READY가_아닌_상태에서_request_호출시_예외가_발생한다() {
+        Payment payment = Payment.create(1L, Money.of(10000L), PaymentMethod.CARD);
+        payment.request("pay-key-001");
+
+        assertThatThrownBy(() -> payment.request("pay-key-002"))
+                .isInstanceOf(PaymentException.class);
+    }
+
+    @Test
+    void REQUESTED가_아닌_상태에서_approve_호출시_예외가_발생한다() {
+        Payment payment = Payment.create(1L, Money.of(10000L), PaymentMethod.CARD);
+
+        assertThatThrownBy(payment::approve)
+                .isInstanceOf(PaymentException.class);
+    }
+
+    @Test
+    void APPROVED_상태에서_fail_호출시_예외가_발생한다() {
+        Payment payment = Payment.create(1L, Money.of(10000L), PaymentMethod.CARD);
+        payment.request("pay-key-001");
+        payment.approve();
+
+        assertThatThrownBy(() -> payment.fail("ERR", "오류"))
+                .isInstanceOf(PaymentException.class);
+    }
+
+    @Test
+    void CANCELED_상태에서_fail_호출시_예외가_발생한다() {
+        Payment payment = Payment.create(1L, Money.of(10000L), PaymentMethod.CARD);
+        payment.request("pay-key-001");
+        payment.approve();
+        payment.cancel();
+
+        assertThatThrownBy(() -> payment.fail("ERR", "오류"))
+                .isInstanceOf(PaymentException.class);
+    }
 }

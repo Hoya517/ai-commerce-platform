@@ -55,19 +55,25 @@ public class Payment {
     }
 
     public void request(String paymentKey) {
+        if (status != PaymentStatus.READY) {
+            throw new PaymentException("Cannot request payment: current status is " + status);
+        }
         this.paymentKey = paymentKey;
         this.status = PaymentStatus.REQUESTED;
     }
 
     public void approve() {
-        if (status == PaymentStatus.APPROVED) {
-            throw new PaymentException("Payment is already approved");
+        if (status != PaymentStatus.REQUESTED) {
+            throw new PaymentException("Cannot approve payment: current status is " + status);
         }
         this.status = PaymentStatus.APPROVED;
         this.approvedAt = LocalDateTime.now();
     }
 
     public void fail(String failureCode, String failureMessage) {
+        if (status != PaymentStatus.READY && status != PaymentStatus.REQUESTED) {
+            throw new PaymentException("Cannot fail payment: current status is " + status);
+        }
         this.status = PaymentStatus.FAILED;
         this.failureCode = failureCode;
         this.failureMessage = failureMessage;

@@ -35,6 +35,7 @@
 - [ ] PG 연동 (Mock 또는 실제)
 - [x] 결제 취소
 - [x] 결제 환불 (WALLET 자동 환불 포함)
+- [x] OrderStatus / PaymentStatus 상태 머신 가드 강화 (ISSUE-11)
 
 ### Wallet (예치금)
 

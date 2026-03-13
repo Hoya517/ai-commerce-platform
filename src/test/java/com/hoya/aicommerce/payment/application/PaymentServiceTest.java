@@ -161,6 +161,7 @@ class PaymentServiceTest {
 
         Payment payment = Payment.create(1L, Money.of(2000L), PaymentMethod.CARD);
         ReflectionTestUtils.setField(payment, "id", 1L);
+        payment.request("pay-key-test");
         payment.approve();
 
         given(paymentRepository.findById(1L)).willReturn(Optional.of(payment));
@@ -188,6 +189,7 @@ class PaymentServiceTest {
 
         Payment payment = Payment.create(1L, Money.of(5000L), PaymentMethod.WALLET);
         ReflectionTestUtils.setField(payment, "id", 1L);
+        payment.request(null);
         payment.approve();
 
         given(paymentRepository.findById(1L)).willReturn(Optional.of(payment));
@@ -211,6 +213,7 @@ class PaymentServiceTest {
 
         Payment payment = Payment.create(1L, Money.of(2000L), PaymentMethod.CARD);
         ReflectionTestUtils.setField(payment, "id", 1L);
+        payment.request("pay-key-test");
         payment.approve();
 
         given(paymentRepository.findById(1L)).willReturn(Optional.of(payment));

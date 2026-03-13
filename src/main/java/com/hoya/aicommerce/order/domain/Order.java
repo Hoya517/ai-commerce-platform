@@ -68,10 +68,16 @@ public class Order {
         if (status == OrderStatus.PAID) {
             throw new OrderException("Order is already paid");
         }
+        if (status == OrderStatus.PAYMENT_PENDING) {
+            throw new OrderException("Payment is already in progress");
+        }
         this.status = OrderStatus.PAYMENT_PENDING;
     }
 
     public void markPaid() {
+        if (status != OrderStatus.PAYMENT_PENDING) {
+            throw new OrderException("Cannot mark paid: order is not in PAYMENT_PENDING status");
+        }
         this.status = OrderStatus.PAID;
     }
 

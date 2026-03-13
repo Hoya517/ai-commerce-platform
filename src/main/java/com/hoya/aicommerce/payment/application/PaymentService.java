@@ -63,6 +63,7 @@ public class PaymentService {
         walletService.deduct(command.memberId(), order.getTotalAmount());
 
         Payment payment = Payment.create(order.getId(), order.getTotalAmount(), PaymentMethod.WALLET);
+        payment.request(null);
         payment.approve();
         order.markPaid();
 

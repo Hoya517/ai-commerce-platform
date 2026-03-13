@@ -72,6 +72,43 @@ class OrderTest {
     }
 
     @Test
+    void PAYMENT_PENDING_상태에서_startPayment_중복_호출시_예외가_발생한다() {
+        Order order = Order.create(1L);
+        order.addItem(10L, "상품A", Money.of(1000L), 1);
+        order.startPayment();
+
+        assertThatThrownBy(order::startPayment)
+                .isInstanceOf(OrderException.class);
+    }
+
+    @Test
+    void markPaid는_PAYMENT_PENDING_상태에서만_가능하다() {
+        Order order = Order.create(1L);
+        order.addItem(10L, "상품A", Money.of(1000L), 1);
+        order.startPayment();
+        order.markPaid();
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
+    }
+
+    @Test
+    void CREATED_상태에서_markPaid_호출시_예외가_발생한다() {
+        Order order = Order.create(1L);
+
+        assertThatThrownBy(order::markPaid)
+                .isInstanceOf(OrderException.class);
+    }
+
+    @Test
+    void CANCELED_상태에서_markPaid_호출시_예외가_발생한다() {
+        Order order = Order.create(1L);
+        order.cancel();
+
+        assertThatThrownBy(order::markPaid)
+                .isInstanceOf(OrderException.class);
+    }
+
+    @Test
     void 주문이_취소된다() {
         Order order = Order.create(1L);
         order.cancel();
