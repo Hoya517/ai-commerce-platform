@@ -9,12 +9,13 @@ public record PaymentConfirmedEvent(
         Long paymentId,
         Long orderId,
         Long memberId,
+        Long sellerId,
         BigDecimal amount,
         PaymentMethod method,
         LocalDateTime occurredAt
 ) {
     public static PaymentConfirmedEvent of(
-            Long paymentId, Long orderId, Long memberId, BigDecimal amount, PaymentMethod method) {
-        return new PaymentConfirmedEvent(paymentId, orderId, memberId, amount, method, LocalDateTime.now());
+            Long paymentId, Long orderId, Long memberId, Long sellerId, BigDecimal amount, PaymentMethod method) {
+        return new PaymentConfirmedEvent(paymentId, orderId, memberId, sellerId, amount, method, LocalDateTime.now());
     }
 }

@@ -1,7 +1,9 @@
 package com.hoya.aicommerce.settlement.application;
 
+import com.hoya.aicommerce.common.domain.Money;
 import com.hoya.aicommerce.common.event.PaymentCanceledEvent;
 import com.hoya.aicommerce.common.event.PaymentConfirmedEvent;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -15,26 +17,27 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * @TransactionalEventListener(phase = AFTER_COMMIT): 결제 트랜잭션 커밋 완료 후에만 실행.
  *   → DB 롤백 시 이벤트 발행 자체가 취소되므로 정산 중복 실행 방지.
  * @Async: 결제 응답을 블로킹하지 않고 별도 스레드에서 처리.
- *
- * TODO: 정산 도메인(ISSUE-Settlement) 구현 시 settlementService 호출로 교체.
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class SettlementEventListener {
+
+    private final SettlementService settlementService;
 
     @Async("eventTaskExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onPaymentConfirmed(PaymentConfirmedEvent event) {
-        log.info("[Settlement] 정산 준비 예약 — paymentId={}, orderId={}, amount={}, method={}",
-                event.paymentId(), event.orderId(), event.amount(), event.method());
-        // TODO: settlementService.prepare(event.paymentId(), event.orderId(), event.amount(), event.method())
+        log.info("[Settlement] 정산 누적 — paymentId={}, sellerId={}, amount={}",
+                event.paymentId(), event.sellerId(), event.amount());
+        settlementService.accumulate(event.sellerId(), Money.of(event.amount()));
     }
 
     @Async("eventTaskExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onPaymentCanceled(PaymentCanceledEvent event) {
-        log.info("[Settlement] 정산 취소 예약 — paymentId={}, orderId={}, amount={}",
-                event.paymentId(), event.orderId(), event.amount());
-        // TODO: settlementService.cancel(event.paymentId())
+        log.info("[Settlement] 정산 취소 예약 — paymentId={}, sellerId={}, amount={}",
+                event.paymentId(), event.sellerId(), event.amount());
+        // TODO: 정산 차감 처리 (ISSUE-20 배치/정산 확정 시 구현)
     }
 }

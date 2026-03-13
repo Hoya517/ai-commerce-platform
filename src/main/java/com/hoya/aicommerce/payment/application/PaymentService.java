@@ -1,5 +1,6 @@
 package com.hoya.aicommerce.payment.application;
 
+import com.hoya.aicommerce.catalog.domain.Product;
 import com.hoya.aicommerce.catalog.domain.ProductRepository;
 import com.hoya.aicommerce.order.domain.Order;
 import com.hoya.aicommerce.order.domain.OrderRepository;
@@ -71,8 +72,9 @@ public class PaymentService {
 
         payment.approve();
         order.markPaid();
+        Long sellerId = resolveSellerIdFromOrder(order);
         eventPublisher.publishEvent(PaymentConfirmedEvent.of(
-                payment.getId(), order.getId(), order.getMemberId(),
+                payment.getId(), order.getId(), order.getMemberId(), sellerId,
                 payment.getAmount().getValue(), payment.getMethod()));
 
         return PaymentResult.from(payment);
@@ -91,9 +93,10 @@ public class PaymentService {
         payment.approve();
         order.markPaid();
 
+        Long sellerId = resolveSellerIdFromOrder(order);
         PaymentResult result = PaymentResult.from(paymentRepository.save(payment));
         eventPublisher.publishEvent(PaymentConfirmedEvent.of(
-                result.paymentId(), order.getId(), command.memberId(),
+                result.paymentId(), order.getId(), command.memberId(), sellerId,
                 result.amount(), result.method()));
         return result;
     }
@@ -130,8 +133,9 @@ public class PaymentService {
             walletService.charge(memberId, new ChargeWalletCommand(payment.getAmount().getValue()));
         }
 
+        Long sellerId = resolveSellerIdFromOrder(order);
         eventPublisher.publishEvent(PaymentCanceledEvent.of(
-                payment.getId(), order.getId(), memberId,
+                payment.getId(), order.getId(), memberId, sellerId,
                 payment.getAmount().getValue(), payment.getMethod()));
         return PaymentResult.from(payment);
     }
@@ -141,5 +145,13 @@ public class PaymentService {
         Payment payment = paymentRepository.findById(command.paymentId())
                 .orElseThrow(() -> new PaymentException("Payment not found"));
         payment.fail(command.failureCode(), command.failureMessage());
+    }
+
+    private Long resolveSellerIdFromOrder(Order order) {
+        return order.getItems().stream()
+                .findFirst()
+                .flatMap(item -> productRepository.findById(item.getProductId()))
+                .map(Product::getSellerId)
+                .orElse(null);
     }
 }
