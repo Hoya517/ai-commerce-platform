@@ -85,7 +85,7 @@ public class PaymentService {
         order.refund();
 
         order.getItems().forEach(item ->
-                productRepository.findById(item.getProductId())
+                productRepository.findByIdWithLock(item.getProductId())
                         .ifPresent(product -> product.increaseStock(item.getQuantity()))
         );
 

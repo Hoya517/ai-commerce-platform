@@ -28,7 +28,7 @@ public class OrderService {
         Order order = Order.create(command.memberId());
 
         command.items().forEach(itemCmd -> {
-            Product product = productRepository.findById(itemCmd.productId())
+            Product product = productRepository.findByIdWithLock(itemCmd.productId())
                     .orElseThrow(() -> new ProductException("Product not found"));
 
             if (!product.isOnSale()) {
@@ -54,7 +54,7 @@ public class OrderService {
         Order order = Order.create(memberId);
 
         cart.getItems().forEach(cartItem -> {
-            Product product = productRepository.findById(cartItem.getProductId())
+            Product product = productRepository.findByIdWithLock(cartItem.getProductId())
                     .orElseThrow(() -> new ProductException("Product not found"));
 
             if (!product.isOnSale()) {
@@ -83,7 +83,7 @@ public class OrderService {
                 .orElseThrow(() -> new OrderException("Order not found"));
         order.cancel();
         order.getItems().forEach(item ->
-                productRepository.findById(item.getProductId())
+                productRepository.findByIdWithLock(item.getProductId())
                         .ifPresent(product -> product.increaseStock(item.getQuantity()))
         );
     }

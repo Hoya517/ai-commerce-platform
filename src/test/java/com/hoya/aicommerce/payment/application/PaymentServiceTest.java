@@ -165,13 +165,13 @@ class PaymentServiceTest {
 
         given(paymentRepository.findById(1L)).willReturn(Optional.of(payment));
         given(orderRepository.findById(1L)).willReturn(Optional.of(order));
-        given(productRepository.findById(10L)).willReturn(Optional.of(product));
+        given(productRepository.findByIdWithLock(10L)).willReturn(Optional.of(product));
 
         PaymentResult result = paymentService.cancelPayment(1L, 1L);
 
         assertThat(result.status()).isEqualTo(PaymentStatus.CANCELED);
         assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
-        verify(productRepository).findById(10L);
+        verify(productRepository).findByIdWithLock(10L);
         verify(walletService, never()).charge(any(), any());
     }
 
@@ -192,7 +192,7 @@ class PaymentServiceTest {
 
         given(paymentRepository.findById(1L)).willReturn(Optional.of(payment));
         given(orderRepository.findById(1L)).willReturn(Optional.of(order));
-        given(productRepository.findById(10L)).willReturn(Optional.of(product));
+        given(productRepository.findByIdWithLock(10L)).willReturn(Optional.of(product));
 
         PaymentResult result = paymentService.cancelPayment(1L, 1L);
 
