@@ -7,6 +7,7 @@ import com.hoya.aicommerce.cart.presentation.request.AddCartItemRequest;
 import com.hoya.aicommerce.cart.presentation.request.UpdateCartItemQuantityRequest;
 import com.hoya.aicommerce.cart.presentation.response.CartResponse;
 import com.hoya.aicommerce.common.auth.AuthContext;
+import com.hoya.aicommerce.common.auth.RequiresAuth;
 import com.hoya.aicommerce.common.presentation.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/cart")
+@RequiresAuth
 public class CartController {
 
     private final CartService cartService;

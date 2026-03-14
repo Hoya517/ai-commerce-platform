@@ -1,6 +1,7 @@
 package com.hoya.aicommerce.order.presentation;
 
 import com.hoya.aicommerce.common.auth.AuthContext;
+import com.hoya.aicommerce.common.auth.RequiresAuth;
 import com.hoya.aicommerce.common.presentation.ApiResponse;
 import com.hoya.aicommerce.order.application.OrderService;
 import com.hoya.aicommerce.order.application.dto.CreateOrderCommand;
@@ -30,6 +31,7 @@ public class OrderController {
     private final AuthContext authContext;
 
     @Operation(summary = "주문 생성")
+    @RequiresAuth
     @PostMapping
     public ApiResponse<OrderResponse> createOrder(@Valid @RequestBody CreateOrderRequest request) {
         List<OrderItemCommand> items = request.items().stream()
@@ -46,6 +48,7 @@ public class OrderController {
     }
 
     @Operation(summary = "장바구니 기반 주문 생성")
+    @RequiresAuth
     @PostMapping("/from-cart")
     public ApiResponse<OrderResponse> createOrderFromCart() {
         return ApiResponse.success(OrderResponse.from(orderService.createOrderFromCart(authContext.getMemberId())));

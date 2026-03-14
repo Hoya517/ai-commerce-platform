@@ -8,9 +8,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import java.io.IOException;
 
+/**
+ * JWT 파싱 및 인증이 필요한 엔드포인트(@RequiresAuth) 보호 필터.
+ * isProtectedPath() 하드코딩 없이 @RequiresAuth 어노테이션으로 선언적으로 관리.
+ */
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -20,6 +26,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtProvider jwtProvider;
     private final AuthContext authContext;
+    private final RequestMappingHandlerMapping requestMappingHandlerMapping;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
@@ -28,7 +35,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = resolveToken(request);
             if (token != null && jwtProvider.validateToken(token)) {
                 authContext.set(jwtProvider.getMemberId(token));
-            } else if (isProtectedPath(request)) {
+            } else if (requiresAuth(request)) {
                 sendUnauthorized(response);
                 return;
             }
@@ -46,15 +53,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return null;
     }
 
-    private boolean isProtectedPath(HttpServletRequest request) {
-        String path = request.getRequestURI();
-        String method = request.getMethod();
-        return path.startsWith("/cart") ||
-                path.startsWith("/settlements") ||
-                (path.equals("/orders") && "POST".equalsIgnoreCase(method)) ||
-                (path.equals("/sellers") && "POST".equalsIgnoreCase(method)) ||
-                (path.equals("/products") && "POST".equalsIgnoreCase(method)) ||
-                (path.matches("/payments/\\d+/cancel") && "POST".equalsIgnoreCase(method));
+    private boolean requiresAuth(HttpServletRequest request) {
+        try {
+            var chain = requestMappingHandlerMapping.getHandler(request);
+            if (chain == null) return false;
+            Object handler = chain.getHandler();
+            if (!(handler instanceof HandlerMethod handlerMethod)) return false;
+            return handlerMethod.hasMethodAnnotation(RequiresAuth.class)
+                    || handlerMethod.getBeanType().isAnnotationPresent(RequiresAuth.class);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private void sendUnauthorized(HttpServletResponse response) throws IOException {

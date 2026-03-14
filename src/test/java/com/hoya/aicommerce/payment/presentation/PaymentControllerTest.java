@@ -186,8 +186,6 @@ class PaymentControllerTest {
 
     @Test
     void 결제_취소_인증_없으면_401() throws Exception {
-        given(jwtProvider.validateToken(any())).willReturn(false);
-
         mockMvc.perform(post("/payments/1/cancel"))
                 .andExpect(status().isUnauthorized());
     }

@@ -1,6 +1,7 @@
 package com.hoya.aicommerce.settlement.presentation;
 
 import com.hoya.aicommerce.common.auth.AuthContext;
+import com.hoya.aicommerce.common.auth.RequiresAuth;
 import com.hoya.aicommerce.common.presentation.ApiResponse;
 import com.hoya.aicommerce.seller.application.SellerService;
 import com.hoya.aicommerce.settlement.application.SettlementService;
@@ -31,6 +32,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/settlements")
+@RequiresAuth
 public class SettlementController {
 
     private final SettlementService settlementService;

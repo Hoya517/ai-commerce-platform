@@ -6,6 +6,7 @@ import com.hoya.aicommerce.catalog.presentation.request.ChangeProductStatusReque
 import com.hoya.aicommerce.catalog.presentation.request.CreateProductRequest;
 import com.hoya.aicommerce.catalog.presentation.response.ProductResponse;
 import com.hoya.aicommerce.common.auth.AuthContext;
+import com.hoya.aicommerce.common.auth.RequiresAuth;
 import com.hoya.aicommerce.common.presentation.ApiResponse;
 import com.hoya.aicommerce.seller.application.SellerService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,6 +32,7 @@ public class ProductController {
     private final AuthContext authContext;
 
     @Operation(summary = "상품 등록 (판매자 전용)")
+    @RequiresAuth
     @PostMapping
     public ApiResponse<ProductResponse> createProduct(@Valid @RequestBody CreateProductRequest request) {
         Long sellerId = sellerService.verifyApprovedSeller(authContext.getMemberId());

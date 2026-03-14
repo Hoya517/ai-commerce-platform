@@ -1,6 +1,7 @@
 package com.hoya.aicommerce.seller.presentation;
 
 import com.hoya.aicommerce.common.auth.AuthContext;
+import com.hoya.aicommerce.common.auth.RequiresAuth;
 import com.hoya.aicommerce.common.presentation.ApiResponse;
 import com.hoya.aicommerce.seller.application.SellerService;
 import com.hoya.aicommerce.seller.application.dto.RegisterSellerCommand;
@@ -28,6 +29,7 @@ public class SellerController {
     private final AuthContext authContext;
 
     @Operation(summary = "판매자 등록")
+    @RequiresAuth
     @PostMapping
     public ApiResponse<SellerResponse> registerSeller(@Valid @RequestBody RegisterSellerRequest request) {
         RegisterSellerCommand command = new RegisterSellerCommand(

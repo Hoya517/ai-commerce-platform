@@ -17,6 +17,14 @@ spring:
     job:
       enabled: false
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+redis:
+  enabled: ${REDIS_ENABLED:false}
+
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:

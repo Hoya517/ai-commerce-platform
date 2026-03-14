@@ -78,7 +78,7 @@ class CartControllerTest {
 
     @Test
     void 장바구니_조회_인증_없으면_401() throws Exception {
-        given(jwtProvider.validateToken(any())).willReturn(false);
+        given(authContext.getMemberId()).willReturn(null);
 
         mockMvc.perform(get("/cart"))
                 .andExpect(status().isUnauthorized());

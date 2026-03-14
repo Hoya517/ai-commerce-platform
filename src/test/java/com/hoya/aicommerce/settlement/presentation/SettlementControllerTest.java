@@ -94,6 +94,8 @@ class SettlementControllerTest {
 
     @Test
     void 정산_목록_조회_인증_없으면_401() throws Exception {
+        given(authContext.getMemberId()).willReturn(null);
+
         mockMvc.perform(get("/settlements/me"))
                 .andExpect(status().isUnauthorized());
     }
@@ -153,6 +155,8 @@ class SettlementControllerTest {
 
     @Test
     void 정산_배치_인증_없으면_401() throws Exception {
+        given(authContext.getMemberId()).willReturn(null);
+
         mockMvc.perform(post("/settlements/batch")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());

@@ -82,7 +82,7 @@ class OrderControllerTest {
 
     @Test
     void 주문_생성_인증_없으면_401() throws Exception {
-        given(jwtProvider.validateToken(any())).willReturn(false);
+        given(authContext.getMemberId()).willReturn(null);
 
         CreateOrderRequest request = new CreateOrderRequest(List.of(new OrderItemRequest(10L, 2)));
 

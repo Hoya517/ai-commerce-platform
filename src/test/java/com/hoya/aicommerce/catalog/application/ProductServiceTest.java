@@ -7,9 +7,9 @@ import com.hoya.aicommerce.catalog.domain.ProductRepository;
 import com.hoya.aicommerce.catalog.domain.ProductStatus;
 import com.hoya.aicommerce.catalog.exception.ProductException;
 import com.hoya.aicommerce.common.domain.Money;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -28,8 +28,12 @@ class ProductServiceTest {
     @Mock
     private ProductRepository productRepository;
 
-    @InjectMocks
     private ProductService productService;
+
+    @BeforeEach
+    void setUp() {
+        productService = new ProductService(productRepository, Optional.empty());
+    }
 
     @Test
     void 상품이_생성된다() {

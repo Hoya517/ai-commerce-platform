@@ -1,6 +1,6 @@
 # Current State — AI Commerce Platform
 
-> 기준일: 2026-03-14 (ISSUE-20 반영)
+> 기준일: 2026-03-14 (전체 이슈 완료)
 
 ## 개요
 
@@ -130,18 +130,15 @@ Presentation  →  Application  →  Domain  →  Infrastructure(Repository)
 | Framework | Spring Boot 4.0.3 |
 | Build | Gradle 9.3.1 |
 | Persistence | Spring Data JPA (Hibernate) |
-| Auth | JJWT 0.12.6 (HS256), BCrypt |
+| Auth | JJWT 0.12.6 (HS256), BCrypt, @RequiresAuth 어노테이션 |
 | Batch | Spring Batch 6.0.2 (via spring-boot-starter-batch) |
 | Test DB | H2 in-memory |
 | API Docs | SpringDoc OpenAPI (Swagger UI: `/swagger-ui.html`) |
 | Utility | Lombok |
-| Test | JUnit 5, Mockito, AssertJ |
-
-**Planned:**
-- Redis
-- PostgreSQL
-- Spring Event
-- Kafka (optional)
+| Test | JUnit 5, Mockito, AssertJ, @SpringBootTest 통합 테스트 |
+| CI | GitHub Actions |
+| Infra | Docker, docker-compose |
+| Redis | Spring Data Redis (선차감 재고 관리, @ConditionalOnProperty 조건부 활성화) |
 
 ---
 
@@ -149,28 +146,32 @@ Presentation  →  Application  →  Domain  →  Infrastructure(Repository)
 
 ### 구현된 기능
 
-- 6개 Bounded Context 전체 Domain · Application · Presentation 레이어 구현
-- JWT 기반 인증 (로그인 API, BCrypt 암호화, 인증 필터)
-- 보호 API에서 memberId 쿼리 파라미터 제거 → JWT에서 추출
+**도메인**
+- 8개 Bounded Context 전체 Domain · Application · Presentation 레이어 구현
+- JWT 기반 인증 — @RequiresAuth 어노테이션 선언적 경로 보호 (ISSUE-27)
 - Seller 도메인: 판매자 등록·승인·정지 상태 머신 (PENDING → APPROVED → SUSPENDED)
-- 상품 등록 시 승인된 판매자 여부 검증 및 sellerId Product에 저장 (ISSUE-06)
-- Wallet 도메인: 회원 가입 시 지갑 자동 생성, 예치금 조회·충전 API (ISSUE-07)
-- 장바구니 기반 주문 생성 (`POST /orders/from-cart`), 주문 취소 시 재고 복구 (ISSUE-08)
-- 예치금 결제 API (`POST /payments/wallet`): 잔액 차감 후 즉시 APPROVED, 주문 PAID 처리 (ISSUE-09)
-- 결제 취소/환불 API (`POST /payments/{paymentId}/cancel`): 재고 복구 + PAID→CANCELED 롤백, WALLET 결제 시 예치금 자동 환불 (ISSUE-10)
-- 도메인 단위 테스트, 서비스 단위 테스트, 컨트롤러 슬라이스 테스트 모두 통과
-- 공통 응답 포맷(`ApiResponse<T>`) 및 전역 예외 처리
-- Swagger UI를 통한 API 문서 자동 생성
-- Settlement 도메인: FeePolicy(10%), 결제 이벤트 구독 → 당월 정산 누적·차감, 조회 API, 배치 확정 (ISSUE-18/19/20/21)
+- Wallet 도메인: 회원 가입 시 지갑 자동 생성, 예치금 조회·충전·차감·환불
+- Settlement 도메인: FeePolicy(10%), 결제 이벤트 구독 → 당월 정산 누적·차감, 조회 API, 배치 확정 (ISSUE-18~21)
+- 이벤트 기반 정산 — @TransactionalEventListener + @Async (PaymentConfirmedEvent, PaymentCanceledEvent)
+- Spring Batch 6 배치 — 월 1회 정산 자동 확정, 수동 실행 API (ISSUE-20)
+
+**인프라/운영**
+- GitHub Actions CI — push/PR 시 자동 빌드+테스트 (ISSUE-22)
+- Docker + docker-compose, 프로파일 분리(local/test) (ISSUE-23)
+- Redis 선차감 재고 관리 — Lua 스크립트 원자적 DECR, DB 보상 트랜잭션 (ISSUE-30)
+
+**테스트**
+- 도메인 단위 테스트, 서비스 단위 테스트, 컨트롤러 슬라이스 테스트
+- 핵심 플로우 통합 테스트 — 회원, 인증, 판매자 플로우, 주문 플로우 (ISSUE-28)
+
+**문서**
+- 아키텍처 다이어그램, API 명세, 설계 고민 포인트 (ISSUE-24/25/26)
+- Kafka·Elasticsearch·MSA 전환 설계 문서 (ISSUE-31, ES1-4, M1-5)
 
 ### 아직 구현되지 않은 기능
 
-- GitHub Actions CI
 - 실 DB 연동 (현재 H2 in-memory 사용)
-
-### 다음 단계 예정 작업
-
-Wallet → Settlement → 이벤트 기반 아키텍처 → CI/CD
+- 상품 목록·검색 API
 
 ---
 
@@ -178,8 +179,7 @@ Wallet → Settlement → 이벤트 기반 아키텍처 → CI/CD
 
 | 항목 | 설명 |
 |---|---|
-| ~~Wallet~~ | ~~회원별 예치금 충전·사용~~ — 완료 |
-| ~~Seller~~ | ~~판매자 도메인 및 상품 등록 권한~~ — 완료 |
-| Settlement | 판매 정산 처리 |
-| Event-driven flow | 도메인 이벤트 발행·구독 (Spring Event / Kafka) |
-| CI/CD pipeline | GitHub Actions 기반 빌드·테스트 자동화 |
+| 실 DB 연동 | MySQL/PostgreSQL + Flyway 마이그레이션 |
+| 상품 검색 | Elasticsearch 연동 (설계 완료 → 구현 필요) |
+| Kafka 전환 | 현재 Spring Event → Kafka 이벤트 브로커 (설계 완료 → 구현 필요) |
+| MSA 전환 | 서비스 분리 → API Gateway → 서비스 간 통신 (설계 완료 → 구현 필요) |

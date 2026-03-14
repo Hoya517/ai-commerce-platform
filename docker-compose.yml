@@ -1,0 +1,9 @@
+services:
+  app:
+    build: .
+    ports:
+      - "9090:9090"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - JWT_SECRET=${JWT_SECRET:-ai-commerce-platform-secret-key-for-jwt-authentication-hs256}
+      - ENCRYPTION_SECRET=${ENCRYPTION_SECRET:-ai-commerce-encrypt-key-for-dev!}

@@ -1,6 +1,7 @@
 package com.hoya.aicommerce.wallet.presentation;
 
 import com.hoya.aicommerce.common.auth.AuthContext;
+import com.hoya.aicommerce.common.auth.RequiresAuth;
 import com.hoya.aicommerce.common.presentation.ApiResponse;
 import com.hoya.aicommerce.wallet.application.WalletService;
 import com.hoya.aicommerce.wallet.application.dto.ChargeWalletCommand;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/wallets")
+@RequiresAuth
 public class WalletController {
 
     private final WalletService walletService;

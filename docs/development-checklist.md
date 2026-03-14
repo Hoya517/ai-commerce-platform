@@ -68,10 +68,14 @@
 - [x] Event Listener 구현 — SettlementEventListener (@TransactionalEventListener + @Async) (ISSUE-15)
 - [x] 이벤트 기반 정합성 전략 문서화 (ISSUE-16) → docs/architecture/event-driven.md
 
+### Auth
+
+- [x] 인증 경로 하드코딩 제거 — @RequiresAuth 어노테이션 기반 선언적 관리 (ISSUE-27)
+
 ### CI/CD
 
-- [ ] Github Actions CI
-- [ ] 테스트 자동 실행
+- [x] Github Actions CI — .github/workflows/ci.yml (ISSUE-22)
+- [x] 테스트 자동 실행 — push/PR to main 시 자동 빌드+테스트
 
 ---
 
@@ -79,9 +83,26 @@
 
 - [ ] 실 DB (MySQL/PostgreSQL)
 - [ ] Flyway/Liquibase
-- [ ] Redis 캐싱
-- [ ] Dockerfile
-- [ ] 프로파일 분리
+- [x] Redis 선차감 재고 관리 — RedisStockRepository, StockService (ISSUE-30)
+- [x] Dockerfile + docker-compose.yml (ISSUE-23)
+- [x] 프로파일 분리 — application-local.yaml, application-test.yaml (ISSUE-23)
+
+---
+
+## D. 테스트
+
+- [x] 핵심 플로우 통합 테스트 — MemberIntegrationTest, AuthFilterIntegrationTest, SellerFlowIntegrationTest, OrderFlowIntegrationTest (ISSUE-28)
+
+---
+
+## E. 문서화
+
+- [x] 아키텍처 다이어그램 — docs/architecture/overview.md (ISSUE-24)
+- [x] API 명세 — docs/api-spec.md (ISSUE-25)
+- [x] 고민 포인트 문서화 — docs/presentation/talking-points.md (ISSUE-26)
+- [x] Kafka 이벤트 설계 — docs/architecture/kafka-event-design.md (ISSUE-31)
+- [x] Elasticsearch 검색 설계 — docs/architecture/elasticsearch-design.md (ES1-4)
+- [x] MSA 전환 로드맵 — docs/architecture/msa-roadmap.md (M1-5)
 
 ---
 

@@ -1,6 +1,7 @@
 package com.hoya.aicommerce.payment.presentation;
 
 import com.hoya.aicommerce.common.auth.AuthContext;
+import com.hoya.aicommerce.common.auth.RequiresAuth;
 import com.hoya.aicommerce.payment.application.PaymentService;
 import com.hoya.aicommerce.payment.application.dto.ConfirmPaymentCommand;
 import com.hoya.aicommerce.payment.application.dto.FailPaymentCommand;
@@ -54,6 +55,7 @@ public class PaymentController {
     }
 
     @Operation(summary = "결제 취소/환불")
+    @RequiresAuth
     @PostMapping("/{paymentId}/cancel")
     public ApiResponse<PaymentResponse> cancelPayment(@PathVariable Long paymentId) {
         Long memberId = authContext.getMemberId();
