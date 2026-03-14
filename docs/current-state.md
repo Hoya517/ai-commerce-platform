@@ -139,6 +139,7 @@ Presentation  →  Application  →  Domain  →  Infrastructure(Repository)
 | CI | GitHub Actions |
 | Infra | Docker, docker-compose |
 | Redis | Spring Data Redis (선차감 재고 관리, @ConditionalOnProperty 조건부 활성화) |
+| Kafka | Spring Kafka (이벤트 브로커, KRaft 모드, @ConditionalOnProperty 조건부 활성화) |
 
 ---
 
@@ -153,6 +154,7 @@ Presentation  →  Application  →  Domain  →  Infrastructure(Repository)
 - Wallet 도메인: 회원 가입 시 지갑 자동 생성, 예치금 조회·충전·차감·환불
 - Settlement 도메인: FeePolicy(10%), 결제 이벤트 구독 → 당월 정산 누적·차감, 조회 API, 배치 확정 (ISSUE-18~21)
 - 이벤트 기반 정산 — @TransactionalEventListener + @Async (PaymentConfirmedEvent, PaymentCanceledEvent)
+- Kafka POC — KafkaEventBridge(Spring Event→Kafka), SettlementKafkaConsumer(@KafkaListener, manual ack), EventIdempotencyService(중복 방지) (ISSUE-31)
 - Spring Batch 6 배치 — 월 1회 정산 자동 확정, 수동 실행 API (ISSUE-20)
 
 **인프라/운영**
@@ -181,5 +183,5 @@ Presentation  →  Application  →  Domain  →  Infrastructure(Repository)
 |---|---|
 | 실 DB 연동 | MySQL/PostgreSQL + Flyway 마이그레이션 |
 | 상품 검색 | Elasticsearch 연동 (설계 완료 → 구현 필요) |
-| Kafka 전환 | 현재 Spring Event → Kafka 이벤트 브로커 (설계 완료 → 구현 필요) |
+| Kafka 전환 | POC 구현 완료 (kafka.enabled=true 시 활성화) → 실 Kafka 환경 연결 필요 |
 | MSA 전환 | 서비스 분리 → API Gateway → 서비스 간 통신 (설계 완료 → 구현 필요) |

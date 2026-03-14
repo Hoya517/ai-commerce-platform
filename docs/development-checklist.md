@@ -67,6 +67,11 @@
 - [x] PaymentCanceledEvent (ISSUE-14)
 - [x] Event Listener 구현 — SettlementEventListener (@TransactionalEventListener + @Async) (ISSUE-15)
 - [x] 이벤트 기반 정합성 전략 문서화 (ISSUE-16) → docs/architecture/event-driven.md
+- [x] Kafka POC 구현 — KafkaEventBridge, SettlementKafkaConsumer, EventIdempotencyService (ISSUE-31)
+  - KRaft 모드 Kafka + Kafka UI docker-compose 추가
+  - spring-kafka 의존성, kafka.enabled 조건부 활성화
+  - SettlementEventListener: kafka.enabled=false 시만 활성화
+  - ProcessedEvent 테이블로 at-least-once 중복 방지
 
 ### Auth
 

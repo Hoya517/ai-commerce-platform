@@ -22,8 +22,24 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
-redis:
-  enabled: ${REDIS_ENABLED:false}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 1
+    consumer:
+      group-id: ai-commerce-group
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.hoya.aicommerce.common.kafka.message
 
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
@@ -33,6 +49,12 @@ redis:
     properties:
       hibernate:
         format_sql: true
+
+redis:
+  enabled: ${REDIS_ENABLED:false}
+
+kafka:
+  enabled: ${KAFKA_ENABLED:false}
 
 server:
   port: 9090
