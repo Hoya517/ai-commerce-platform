@@ -3,11 +3,14 @@ package com.hoya.aicommerce.order.application;
 import com.hoya.aicommerce.cart.domain.Cart;
 import com.hoya.aicommerce.cart.domain.CartRepository;
 import com.hoya.aicommerce.cart.exception.CartException;
+import com.hoya.aicommerce.catalog.application.StockService;
 import com.hoya.aicommerce.catalog.domain.Product;
 import com.hoya.aicommerce.catalog.domain.ProductRepository;
 import com.hoya.aicommerce.catalog.exception.ProductException;
 import com.hoya.aicommerce.common.event.OrderCreatedEvent;
+import com.hoya.aicommerce.common.event.StockDecreaseEvent;
 import com.hoya.aicommerce.order.application.dto.CreateOrderCommand;
+import com.hoya.aicommerce.order.application.dto.OrderItemCommand;
 import com.hoya.aicommerce.order.application.dto.OrderResult;
 import com.hoya.aicommerce.order.domain.Order;
 import com.hoya.aicommerce.order.domain.OrderRepository;
@@ -17,6 +20,10 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class OrderService {
@@ -25,10 +32,12 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final CartRepository cartRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final Optional<StockService> stockService;
 
     @Transactional
     public OrderResult createOrder(CreateOrderCommand command) {
         Order order = Order.create(command.memberId());
+        List<OrderItemCommand> redisReservedItems = new ArrayList<>();
 
         command.items().forEach(itemCmd -> {
             Product product = productRepository.findByIdWithLock(itemCmd.productId())
@@ -38,11 +47,24 @@ public class OrderService {
                 throw new ProductException("Product is not on sale: " + product.getId());
             }
 
-            product.decreaseStock(itemCmd.quantity());
+            boolean redisReserved = stockService
+                    .map(s -> s.reserve(itemCmd.productId(), itemCmd.quantity()))
+                    .orElse(false);
+
+            if (redisReserved) {
+                redisReservedItems.add(itemCmd); // DB 차감은 Worker가 비동기로 처리
+            } else {
+                product.decreaseStock(itemCmd.quantity()); // Redis 미사용 또는 미초기화 → 직접 차감
+            }
+
             order.addItem(product.getId(), product.getName(), product.getPrice(), itemCmd.quantity());
         });
 
         OrderResult result = OrderResult.from(orderRepository.save(order));
+
+        redisReservedItems.forEach(item ->
+                eventPublisher.publishEvent(new StockDecreaseEvent(item.productId(), item.quantity(), result.orderId()))
+        );
         eventPublisher.publishEvent(OrderCreatedEvent.of(result.orderId(), result.memberId(), result.totalAmount()));
         return result;
     }
@@ -57,6 +79,7 @@ public class OrderService {
         }
 
         Order order = Order.create(memberId);
+        List<OrderItemCommand> redisReservedItems = new ArrayList<>();
 
         cart.getItems().forEach(cartItem -> {
             Product product = productRepository.findByIdWithLock(cartItem.getProductId())
@@ -66,12 +89,25 @@ public class OrderService {
                 throw new ProductException("Product is not on sale: " + product.getId());
             }
 
-            product.decreaseStock(cartItem.getQuantity());
+            boolean redisReserved = stockService
+                    .map(s -> s.reserve(cartItem.getProductId(), cartItem.getQuantity()))
+                    .orElse(false);
+
+            if (redisReserved) {
+                redisReservedItems.add(new OrderItemCommand(cartItem.getProductId(), cartItem.getQuantity()));
+            } else {
+                product.decreaseStock(cartItem.getQuantity());
+            }
+
             order.addItem(product.getId(), product.getName(), product.getPrice(), cartItem.getQuantity());
         });
 
         OrderResult result = OrderResult.from(orderRepository.save(order));
         cart.clear();
+
+        redisReservedItems.forEach(item ->
+                eventPublisher.publishEvent(new StockDecreaseEvent(item.productId(), item.quantity(), result.orderId()))
+        );
         eventPublisher.publishEvent(OrderCreatedEvent.of(result.orderId(), result.memberId(), result.totalAmount()));
         return result;
     }

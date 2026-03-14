@@ -16,9 +16,9 @@ import com.hoya.aicommerce.order.domain.Order;
 import com.hoya.aicommerce.order.domain.OrderRepository;
 import com.hoya.aicommerce.order.domain.OrderStatus;
 import com.hoya.aicommerce.order.exception.OrderException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
@@ -48,8 +48,12 @@ class OrderServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
-    @InjectMocks
     private OrderService orderService;
+
+    @BeforeEach
+    void setUp() {
+        orderService = new OrderService(orderRepository, productRepository, cartRepository, eventPublisher, Optional.empty());
+    }
 
     @Test
     void 주문이_생성된다() {

@@ -73,6 +73,38 @@ public class StockService {
         redisStockRepository.sync(productId, quantity);
     }
 
+    /**
+     * Redis에만 선차감한다. true=성공, false=미초기화(호출자가 DB fallback).
+     * 재고 부족 시 예외.
+     */
+    public boolean reserve(Long productId, int quantity) {
+        long remaining = redisStockRepository.decrease(productId, quantity);
+        if (remaining == -2) {
+            return false; // Redis 미초기화 → 호출자가 DB 직접 차감
+        }
+        if (remaining < 0) {
+            throw new ProductException("Insufficient stock");
+        }
+        return true;
+    }
+
+    /**
+     * DB에만 재고를 차감한다. Redis 선차감 이후 비동기 Worker에서 호출.
+     */
+    @Transactional
+    public void decreaseInDb(Long productId, int quantity) {
+        Product product = productRepository.findByIdWithLock(productId)
+                .orElseThrow(() -> new ProductException("Product not found"));
+        product.decreaseStock(quantity);
+    }
+
+    /**
+     * Redis 선차감을 복구한다. DB 실패 시 보상용.
+     */
+    public void compensate(Long productId, int quantity) {
+        redisStockRepository.increase(productId, quantity);
+    }
+
     private void decreaseFromDb(Long productId, int quantity) {
         Product product = productRepository.findByIdWithLock(productId)
                 .orElseThrow(() -> new ProductException("Product not found"));
