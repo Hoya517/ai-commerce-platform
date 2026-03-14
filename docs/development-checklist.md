@@ -84,6 +84,8 @@
 - [ ] 실 DB (MySQL/PostgreSQL)
 - [ ] Flyway/Liquibase
 - [x] Redis 선차감 재고 관리 — RedisStockRepository, StockService (ISSUE-30)
+- [x] Queue 적재 및 Worker DB 반영 — StockDecreaseEvent, StockDecreaseWorker (@Async+@TransactionalEventListener) (ISSUE-30)
+- [x] OrderService Redis 선차감 통합 — Optional<StockService> 주입, reserve()/fallback 흐름, 이벤트 발행 (ISSUE-30)
 - [x] Dockerfile + docker-compose.yml (ISSUE-23)
 - [x] 프로파일 분리 — application-local.yaml, application-test.yaml (ISSUE-23)
 
