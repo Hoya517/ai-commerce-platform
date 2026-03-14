@@ -29,9 +29,17 @@ public class KafkaConfig {
                 .build();
     }
 
+    @Bean
+    public NewTopic stockDecreaseEventsTopic() {
+        return TopicBuilder.name("stock-decrease-events")
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
     /**
-     * MANUAL ack 모드: 컨슈머가 처리 완료 후 ack.acknowledge() 호출 시에만 오프셋 커밋.
-     * at-least-once delivery 보장 — 중복 방지는 EventIdempotencyService에서 처리.
+     * MANUAL ack 모드: 처리 완료 후 ack.acknowledge() 호출 시에만 오프셋 커밋.
+     * SettlementKafkaConsumer에서 사용. at-least-once + 중복은 EventIdempotencyService로 방지.
      */
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory(
@@ -40,6 +48,19 @@ public class KafkaConfig {
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory);
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
+        return factory;
+    }
+
+    /**
+     * @RetryableTopic과 함께 사용하는 팩토리.
+     * StockDecreaseKafkaConsumer에서 사용. 재시도/DLQ는 @RetryableTopic이 자동 관리.
+     */
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, Object> retryableKafkaListenerContainerFactory(
+            ConsumerFactory<String, Object> consumerFactory) {
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory);
         return factory;
     }
 }

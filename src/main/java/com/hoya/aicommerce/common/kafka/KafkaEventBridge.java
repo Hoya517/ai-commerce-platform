@@ -3,9 +3,11 @@ package com.hoya.aicommerce.common.kafka;
 import com.hoya.aicommerce.common.event.OrderCreatedEvent;
 import com.hoya.aicommerce.common.event.PaymentCanceledEvent;
 import com.hoya.aicommerce.common.event.PaymentConfirmedEvent;
+import com.hoya.aicommerce.common.event.StockDecreaseEvent;
 import com.hoya.aicommerce.common.kafka.message.OrderCreatedEventMessage;
 import com.hoya.aicommerce.common.kafka.message.PaymentCanceledEventMessage;
 import com.hoya.aicommerce.common.kafka.message.PaymentConfirmedEventMessage;
+import com.hoya.aicommerce.common.kafka.message.StockDecreaseEventMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -29,6 +31,7 @@ public class KafkaEventBridge {
 
     private static final String ORDER_EVENTS_TOPIC = "order-events";
     private static final String PAYMENT_EVENTS_TOPIC = "payment-events";
+    private static final String STOCK_DECREASE_TOPIC = "stock-decrease-events";
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
@@ -54,5 +57,13 @@ public class KafkaEventBridge {
         PaymentCanceledEventMessage message = PaymentCanceledEventMessage.from(event);
         log.info("[KafkaBridge] 결제 취소 이벤트 발행 — paymentId={}", event.paymentId());
         kafkaTemplate.send(PAYMENT_EVENTS_TOPIC, String.valueOf(event.paymentId()), message);
+    }
+
+    @Async("eventTaskExecutor")
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onStockDecrease(StockDecreaseEvent event) {
+        StockDecreaseEventMessage message = StockDecreaseEventMessage.from(event);
+        log.info("[KafkaBridge] 재고 선차감 이벤트 발행 — productId={}, orderId={}", event.productId(), event.orderId());
+        kafkaTemplate.send(STOCK_DECREASE_TOPIC, String.valueOf(event.productId()), message);
     }
 }
